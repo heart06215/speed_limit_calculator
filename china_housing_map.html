@@ -1,0 +1,2890 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>中国城市房价地图</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@4/map/js/china.js"></script>
+    <style>
+        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+        body {{
+            background: #111;
+            color: #ccc;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }}
+        #main {{ display: flex; height: 100vh; }}
+        #map-container {{
+            flex: 1;
+            position: relative;
+        }}
+        #map {{ width: 100%; height: 100%; }}
+        #detail-panel {{
+            width: 420px;
+            background: #1a1a2e;
+            border-left: 1px solid #333;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }}
+        #detail-panel h2 {{
+            font-size: 18px;
+            color: #54a0ff;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 10px;
+        }}
+        #city-stats {{
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }}
+        .stat-card {{
+            background: #16213e;
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+        }}
+        .stat-card .label {{
+            font-size: 11px;
+            color: #888;
+            margin-bottom: 4px;
+        }}
+        .stat-card .value {{
+            font-size: 18px;
+            font-weight: bold;
+        }}
+        .stat-card .value.red {{ color: #ff4b4b; }}
+        .stat-card .value.green {{ color: #4ecdc4; }}
+        #line-chart {{ width: 100%; height: 280px; margin-top: 10px; }}
+        #hint {{
+            text-align: center;
+            color: #666;
+            margin-top: 40px;
+            font-size: 14px;
+        }}
+        .legend {{
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(26,26,46,0.9);
+            border-radius: 8px;
+            padding: 12px 16px;
+            font-size: 12px;
+        }}
+        .legend-item {{
+            display: flex;
+            align-items: center;
+            margin: 4px 0;
+        }}
+        .legend-dot {{
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }}
+    </style>
+</head>
+<body>
+    <div id="main">
+        <div id="map-container">
+            <div id="map"></div>
+            <div class="legend">
+                <div class="legend-item"><div class="legend-dot" style="background:#FF4B4B"></div>北上深</div>
+                <div class="legend-item"><div class="legend-dot" style="background:#FF9F43"></div>一线</div>
+                <div class="legend-item"><div class="legend-dot" style="background:#54A0FF"></div>二线</div>
+                <div class="legend-item"><div class="legend-dot" style="background:#5F27CD"></div>三线</div>
+            </div>
+        </div>
+        <div id="detail-panel">
+            <h2 id="panel-title">请点击地图上的城市</h2>
+            <div id="hint">点击地图上的圆点<br>查看该城市房价走势</div>
+            <div id="city-stats" style="display:none;"></div>
+            <div id="line-chart"></div>
+        </div>
+    </div>
+    <script>
+        // 城市数据
+        const CITY_DATA = {
+  "上海": {
+    "map_name": "上海",
+    "lat": 31.2304,
+    "lon": 121.4737,
+    "current_price": 42749,
+    "max_price": 60638,
+    "min_price": 42749,
+    "peak_date": "2023-08",
+    "drop_from_peak": -29.5,
+    "change_pct_12m": -9.7,
+    "color": "#FF4B4B",
+    "tier_name": "北上深",
+    "source_type": "安居客数据",
+    "monthly": [
+      {
+        "label": "2025-01",
+        "price": 47342,
+        "change_pct": 0.0
+      },
+      {
+        "label": "2025-02",
+        "price": 47152,
+        "change_pct": -0.4
+      },
+      {
+        "label": "2025-03",
+        "price": 47341,
+        "change_pct": 0.4
+      },
+      {
+        "label": "2025-04",
+        "price": 47388,
+        "change_pct": 0.1
+      },
+      {
+        "label": "2025-05",
+        "price": 47056,
+        "change_pct": -0.7
+      },
+      {
+        "label": "2025-06",
+        "price": 46727,
+        "change_pct": -0.7
+      },
+      {
+        "label": "2025-07",
+        "price": 46307,
+        "change_pct": -0.9
+      },
+      {
+        "label": "2025-08",
+        "price": 45158,
+        "change_pct": -2.48
+      },
+      {
+        "label": "2025-09",
+        "price": 44762,
+        "change_pct": -0.88
+      },
+      {
+        "label": "2025-10",
+        "price": 44235,
+        "change_pct": -1.18
+      },
+      {
+        "label": "2025-11",
+        "price": 43320,
+        "change_pct": -2.07
+      },
+      {
+        "label": "2025-12",
+        "price": 42749,
+        "change_pct": -1.32
+      }
+    ]
+  },
+  "兰州": {
+    "map_name": "兰州",
+    "lat": 36.0611,
+    "lon": 103.8343,
+    "current_price": 8743,
+    "max_price": 12095,
+    "min_price": 8743,
+    "peak_date": "2021-08",
+    "drop_from_peak": -27.7,
+    "change_pct_12m": -8.2,
+    "color": "#54A0FF",
+    "tier_name": "二线",
+    "source_type": "统计局估算",
+    "monthly": [
+      {
+        "label": "2025-01",
+        "price": 9523,
+        "change_pct": 0.0
+      },
+      {
+        "label": "2025-02",
+        "price": 9380,
+        "change_pct": -1.5
+      },
+      {
+        "label": "2025-03",
+        "price": 9256,
+        "change_pct": -1.32
+      },
+      {
+        "label": "2025-04",
+        "price": 9152,
+        "change_pct": -1.12
+      },
+      {
+        "label": "2025-05",
+        "price": 9067,
+        "change_pct": -0.93
+      },
+      {
+        "label": "2025-06",
+        "price": 8998,
+        "change_pct": -0.76
+      },
+      {
+        "label": "2025-07",
+        "price": 8941,
+        "change_pct": -0.63
+      },
+      {
+        "label": "2025-08",
+        "price": 8892,
+        "change_pct": -0.55
+      },
+      {
+        "label": "2025-09",
+        "price": 8849,
+        "change_pct": -0.48
+      },
+      {
+        "label": "2025-10",
+        "price": 8810,
+        "change_pct": -0.44
+      },
+      {
+        "label": "2025-11",
+        "price": 8775,
+        "change_pct": -0.4
+      },
+      {
+        "label": "2025-12",
+        "price": 8743,
+        "change_pct": -0.36
+      }
+    ]
+  },
+  "北京": {
+    "map_name": "北京",
+    "lat": 39.9042,
+    "lon": 116.4074,
+    "current_price": 39447,
+    "max_price": 58538,
+    "min_price": 39447,
+    "peak_date": "2023-02",
+    "drop_from_peak": -32.6,
+    "change_pct_12m": -10.4,
+    "color": "#FF4B4B",
+    "tier_name": "北上深",
+    "source_type": "安居客数据",
+    "monthly": [
+      {
+        "label": "2025-01",
+        "price": 44034,
+        "change_pct": 0.0
+      },
+      {
+        "label": "2025-02",
+        "price": 42714,
+        "change_pct": -3.0
+      },
+      {
+        "label": "2025-03",
+        "price": 44364,
+        "change_pct": 3.86
+      },
+      {
+        "label": "2025-04",
+        "price": 44386,
+        "change_pct": 0.05
+      },
+      {
+        "label": "2025-05",
+        "price": 43321,
+        "change_pct": -2.4
+      },
+      {
+        "label": "2025-06",
+        "price": 42616,
+        "change_pct": -1.63
+      },
+      {
+        "label": "2025-07",
+        "price": 43947,
+        "change_pct": 3.12
+      },
+      {
+        "label": "2025-08",
+        "price": 42410,
+        "change_pct": -3.5
+      },
+      {
+        "label": "2025-09",
+        "price": 41642,
+        "change_pct": -1.81
+      },
+      {
+        "label": "2025-10",
+        "price": 41942,
+        "change_pct": 0.72
+      },
+      {
+        "label": "2025-11",
+        "price": 40861,
+        "change_pct": -2.58
+      },
+      {
+        "label": "2025-12",
+        "price": 39447,
+        "change_pct": -3.46
+      }
+    ]
+  },
+  "南京": {
+    "map_name": "南京",
+    "lat": 32.0603,
+    "lon": 118.7969,
+    "current_price": 18600,
+    "max_price": 27523,
+    "min_price": 18600,
+    "peak_date": "2023-09",
+    "drop_from_peak": -32.4,
+    "change_pct_12m": -11.4,
+    "color": "#FF9F43",
+    "tier_name": "一线",
+    "source_type": "安居客数据",
+    "monthly": [
+      {
+        "label": "2025-01",
+        "price": 21000,
+        "change_pct": 0.0
+      },
+      {
+        "label": "2025-02",
+        "price": 20600,
+        "change_pct": -1.9
+      },
+      {
+        "label": "2025-03",
+        "price": 20200,
+        "change_pct": -1.94
+      },
+      {
+        "label": "2025-04",
+        "price": 19900,
+        "change_pct": -1.49
+      },
+      {
+        "label": "2025-05",
+        "price": 19700,
+        "change_pct": -1.01
+      },
+      {
+        "label": "2025-06",
+        "price": 19500,
+        "change_pct": -1.02
+      },
+      {
+        "label": "2025-07",
+        "price": 19300,
+        "change_pct": -1.03
+      },
+      {
+        "label": "2025-08",
+        "price": 19100,
+        "change_pct": -1.04
+      },
+      {
+        "label": "2025-09",
+        "price": 18900,
+        "change_pct": -1.05
+      },
+      {
+        "label": "2025-10",
+        "price": 18800,
+        "change_pct": -0.53
+      },
+      {
+        "label": "2025-11",
+        "price": 18700,
+        "change_pct": -0.53
+      },
+      {
+        "label": "2025-12",
+        "price": 18600,
+        "change_pct": -0.53
+      }
+    ]
+  },
+  "南宁": {
+    "map_name": "南宁",
+    "lat": 22.817,
+    "lon": 108.3665,
+    "current_price": 9104,
+    "max_price": 12328,
+    "min_price": 9104,
+    "peak_date": "2021-04",
+    "drop_from_peak": -26.2,
+    "change_pct_12m": -5.5,
+    "color": "#54A0FF",
+    "tier_name": "二线",
+    "source_type": "统计局估算",
+    "monthly": [
+      {
+        "label": "2025-02",
+        "price": 9630,
+        "change_pct": 0.0
+      },
+      {
+        "label": "2025-03",
+        "price": 9582,
+        "change_pct": -0.5
+      },
+      {
+        "label": "2025-04",
+        "price": 9544,
+        "change_pct": -0.4
+      },
+      {
+        "label": "2025-05",
+        "price": 9515,
+        "change_pct": -0.3
+      },
+      {
+        "label": "2025-06",
+        "price": 9467,
+        "change_pct": -0.5
+      },
+      {
+        "label": "2025-07",
+        "price": 9411,
+        "change_pct": -0.59
+      },
+      {
+        "label": "2025-08",
+        "price": 9373,
+        "change_pct": -0.4
+      },
+      {
+        "label": "2025-09",
+        "price": 9307,
+        "change_pct": -0.7
+      },
+      {
+        "label": "2025-10",
+        "price": 9261,
+        "change_pct": -0.49
+      },
+      {
+        "label": "2025-11",
+        "price": 9187,
+        "change_pct": -0.8
+      },
+      {
+        "label": "2025-12",
+        "price": 9168,
+        "change_pct": -0.21
+      },
+      {
+        "label": "2026-02",
+        "price": 9104,
+        "change_pct": -0.7
+      }
+    ]
+  },
+  "南昌": {
+    "map_name": "南昌",
+    "lat": 28.682,
+    "lon": 115.8579,
+    "current_price": 9020,
+    "max_price": 11689,
+    "min_price": 9020,
+    "peak_date": "2021-04",
+    "drop_from_peak": -22.8,
+    "change_pct_12m": -5.7,
+    "color": "#54A0FF",
+    "tier_name": "二线",
+    "source_type": "统计局估算",
+    "monthly": [
+      {
+        "label": "2025-02",
+        "price": 9561,
+        "change_pct": 0.0
+      },
+      {
+        "label": "2025-03",
+        "price": 9589,
+        "change_pct": 0.29
+      },
+      {
+        "label": "2025-04",
+        "price": 9541,
+        "change_pct": -0.5
+      },
+      {
+        "label": "2025-05",
+        "price": 9475,
+        "change_pct": -0.69
+      },
+      {
+        "label": "2025-06",
+        "price": 9389,
+        "change_pct": -0.91
+      },
+      {
+        "label": "2025-07",
+        "price": 9352,
+        "change_pct": -0.39
+      },
+      {
+        "label": "2025-08",
+        "price": 9268,
+        "change_pct": -0.9
+      },
+      {
+        "label": "2025-09",
+        "price": 9240,
+        "change_pct": -0.3
+      },
+      {
+        "label": "2025-10",
+        "price": 9138,
+        "change_pct": -1.1
+      },
+      {
+        "label": "2025-11",
+        "price": 9065,
+        "change_pct": -0.8
+      },
+      {
+        "label": "2025-12",
+        "price": 9029,
+        "change_pct": -0.4
+      },
+      {
+        "label": "2026-02",
+        "price": 9020,
+        "change_pct": -0.1
+      }
+    ]
+  },
+  "厦门": {
+    "map_name": "厦门",
+    "lat": 24.4798,
+    "lon": 118.0894,
+    "current_price": 20388,
+    "max_price": 27571,
+    "min_price": 20368,
+    "peak_date": "2022-06",
+    "drop_from_peak": -26.1,
+    "change_pct_12m": -6.8,
+    "color": "#FF9F43",
+    "tier_name": "一线",
+    "source_type": "安居客数据",
+    "monthly": [
+      {
+        "label": "2025-02",
+        "price": 21873,
+        "change_pct": 0.0
+      },
+      {
+        "label": "2025-03",
+        "price": 21807,
+        "change_pct": -0.3
+      },
+      {
+        "label": "2025-04",
+        "price": 21676,
+        "change_pct": -0.6
+      },
+      {
+        "label": "2025-05",
+        "price": 21589,
+        "change_pct": -0.4
+      },
+      {
+        "label": "2025-06",
+        "price": 21460,
+        "change_pct": -0.6
+      },
+      {
+        "label": "2025-07",
+        "price": 21310,
+        "change_pct": -0.7
+      },
+      {
+        "label": "2025-08",
+        "price": 21118,
+        "change_pct": -0.9
+      },
+      {
+        "label": "2025-09",
+        "price": 20886,
+        "change_pct": -1.1
+      },
+      {
+        "label": "2025-10",
+        "price": 20677,
+        "change_pct": -1.0
+      },
+      {
+        "label": "2025-11",
+        "price": 20470,
+        "change_pct": -1.0
+      },
+      {
+        "label": "2025-12",
+        "price": 20368,
+        "change_pct": -0.5
+      },
+      {
+        "label": "2026-02",
+        "price": 20388,
+        "change_pct": 0.1
+      }
+    ]
+  },
+  "合肥": {
+    "map_name": "合肥",
+    "lat": 31.8206,
+    "lon": 117.2272,
+    "current_price": 9196,
+    "max_price": 11470,
+    "min_price": 9196,
+    "peak_date": "2021-07",
+    "drop_from_peak": -19.8,
+    "change_pct_12m": -5.6,
+    "color": "#54A0FF",
+    "tier_name": "二线",
+    "source_type": "统计局估算",
+    "monthly": [
+      {
+        "label": "2025-02",
+        "price": 9738,
+        "change_pct": 0.0
+      },
+      {
+        "label": "2025-03",
+        "price": 9718,
+        "change_pct": -0.21
+      },
+      {
+        "label": "2025-04",
+        "price": 9689,
+        "change_pct": -0.3
+      },
+      {
+        "label": "2025-05",
+        "price": 9621,
+        "change_pct": -0.7
+      },
+      {
+        "label": "2025-06",
+        "price": 9535,
+        "change_pct": -0.89
+      },
+      {
+        "label": "2025-07",
+        "price": 9477,
+        "change_pct": -0.61
+      },
+      {
+        "label": "2025-08",
+        "price": 9392,
+        "change_pct": -0.9
+      },
+      {
+        "label": "2025-09",
+        "price": 9345,
+        "change_pct": -0.5
+      },
+      {
+        "label": "2025-10",
+        "price": 9280,
+        "change_pct": -0.7
+      },
+      {
+        "label": "2025-11",
+        "price": 9196,
+        "change_pct": -0.91
+      },
+      {
+        "label": "2025-12",
+        "price": 9196,
+        "change_pct": 0.0
+      },
+      {
+        "label": "2026-02",
+        "price": 9196,
+        "change_pct": 0.0
+      }
+    ]
+  },
+  "呼和浩特": {
+    "map_name": "呼和浩特",
+    "lat": 40.8427,
+    "lon": 111.749,
+    "current_price": 9022,
+    "max_price": 12193,
+    "min_price": 9022,
+    "peak_date": "2021-04",
+    "drop_from_peak": -26.0,
+    "change_pct_12m": -5.2,
+    "color": "#54A0FF",
+    "tier_name": "二线",
+    "source_type": "统计局估算",
+    "monthly": [
+      {
+        "label": "2025-02",
+        "price": 9515,
+        "change_pct": 0.0
+      },
+      {
+        "label": "2025-03",
+        "price": 9486,
+        "change_pct": -0.3
+      },
+      {
+        "label": "2025-04",
+        "price": 9439,
+        "change_pct": -0.5
+      },
+      {
+        "label": "2025-05",
+        "price": 9382,
+        "change_pct": -0.6
+      },
+      {
+        "label": "2025-06",
+        "price": 9344,
+        "change_pct": -0.41
+      },
+      {
+        "label": "2025-07",
+        "price": 9288,
+        "change_pct": -0.6
+      },
+      {
+        "label": "2025-08",
+        "price": 9261,
+        "change_pct": -0.29
+      },
+      {
+        "label": "2025-09",
+        "price": 9223,
+        "change_pct": -0.41
+      },
+      {
+        "label": "2025-10",
+        "price": 9177,
+        "change_pct": -0.5
+      },
+      {
+        "label": "2025-11",
+        "price": 9122,
+        "change_pct": -0.6
+      },
+      {
+        "label": "2025-12",
+        "price": 9077,
+        "change_pct": -0.49
+      },
+      {
+        "label": "2026-02",
+        "price": 9022,
+        "change_pct": -0.61
+      }
+    ]
+  },
+  "哈尔滨": {
+    "map_name": "哈尔滨",
+    "lat": 45.8038,
+    "lon": 126.535,
+    "current_price": 9365,
+    "max_price": 12835,
+    "min_price": 9365,
+    "peak_date": "2021-07",
+    "drop_from_peak": -27.0,
+    "change_pct_12m": -4.3,
+    "color": "#54A0FF",
+    "tier_name": "二线",
+    "source_type": "统计局估算",
+    "monthly": [
+      {
+        "label": "2025-02",
+        "price": 9787,
+        "change_pct": 0.0
+      },
+      {
+        "label": "2025-03",
+        "price": 9758,
+        "change_pct": -0.3
+      },
+      {
+        "label": "2025-04",
+        "price": 9719,
+        "change_pct": -0.4
+      },
+      {
+        "label": "2025-05",
+        "price": 9660,
+        "change_pct": -0.61
+      },
+      {
+        "label": "2025-06",
+        "price": 9632,
+        "change_pct": -0.29
+      },
+      {
+        "label": "2025-07",
+        "price": 9574,
+        "change_pct": -0.6
+      },
+      {
+        "label": "2025-08",
+        "price": 9535,
+        "change_pct": -0.41
+      },
+      {
+        "label": "2025-09",
+        "price": 9516,
+        "change_pct": -0.2
+      },
+      {
+        "label": "2025-10",
+        "price": 9469,
+        "change_pct": -0.49
+      },
+      {
+        "label": "2025-11",
+        "price": 9412,
+        "change_pct": -0.6
+      },
+      {
+        "label": "2025-12",
+        "price": 9365,
+        "change_pct": -0.5
+      },
+      {
+        "label": "2026-02",
+        "price": 9365,
+        "change_pct": 0.0
+      }
+    ]
+  },
+  "大连": {
+    "map_name": "大连",
+    "lat": 38.914,
+    "lon": 121.6147,
+    "current_price": 9270,
+    "max_price": 12023,
+    "min_price": 9261,
+    "peak_date": "2021-10",
+    "drop_from_peak": -22.9,
+    "change_pct_12m": -4.2,
+    "color": "#54A0FF",
+    "tier_name": "二线",
+    "source_type": "统计局估算",
+    "monthly": [
+      {
+        "label": "2025-02",
+        "price": 9679,
+        "change_pct": 0.0
+      },
+      {
+        "label": "2025-03",
+        "price": 9640,
+        "change_pct": -0.4
+      },
+      {
+        "label": "2025-04",
+        "price": 9611,
+        "change_pct": -0.3
+      },
+      {
+        "label": "2025-05",
+        "price": 9554,
+        "change_pct": -0.59
+      },
+      {
+        "label": "2025-06",
+        "price": 9506,
+        "change_pct": -0.5
+      },
+      {
+        "label": "2025-07",
+        "price": 9468,
+        "change_pct": -0.4
+      },
+      {
+        "label": "2025-08",
+        "price": 9411,
+        "change_pct": -0.6
+      },
+      {
+        "label": "2025-09",
+        "price": 9345,
+        "change_pct": -0.7
+      },
+      {
+        "label": "2025-10",
+        "price": 9298,
+        "change_pct": -0.5
+      },
+      {
+        "label": "2025-11",
+        "price": 9280,
+        "change_pct": -0.19
+      },
+      {
+        "label": "2025-12",
+        "price": 9261,
+        "change_pct": -0.2
+      },
+      {
+        "label": "2026-02",
+        "price": 9270,
+        "change_pct": 0.1
+      }
+    ]
+  },
+  "天津": {
+    "map_name": "天津",
+    "lat": 39.3434,
+    "lon": 117.3616,
+    "current_price": 12900,
+    "max_price": 17784,
+    "min_price": 12900,
+    "peak_date": "2021-10",
+    "drop_from_peak": -27.5,
+    "change_pct_12m": -9.8,
+    "color": "#FF9F43",
+    "tier_name": "一线",
+    "source_type": "安居客数据",
+    "monthly": [
+      {
+        "label": "2025-01",
+        "price": 14300,
+        "change_pct": 0.0
+      },
+      {
+        "label": "2025-02",
+        "price": 14100,
+        "change_pct": -1.4
+      },
+      {
+        "label": "2025-03",
+        "price": 13900,
+        "change_pct": -1.42
+      },
+      {
+        "label": "2025-04",
+        "price": 13700,
+        "change_pct": -1.44
+      },
+      {
+        "label": "2025-05",
+        "price": 13600,
+        "change_pct": -0.73
+      },
+      {
+        "label": "2025-06",
+        "price": 13500,
+        "change_pct": -0.74
+      },
+      {
+        "label": "2025-07",
+        "price": 13400,
+        "change_pct": -0.74
+      },
+      {
+        "label": "2025-08",
+        "price": 13300,
+        "change_pct": -0.75
+      },
+      {
+        "label": "2025-09",
+        "price": 13200,
+        "change_pct": -0.75
+      },
+      {
+        "label": "2025-10",
+        "price": 13100,
+        "change_pct": -0.76
+      },
+      {
+        "label": "2025-11",
+        "price": 13000,
+        "change_pct": -0.76
+      },
+      {
+        "label": "2025-12",
+        "price": 12900,
+        "change_pct": -0.77
+      }
+    ]
+  },
+  "太原": {
+    "map_name": "太原",
+    "lat": 37.8706,
+    "lon": 112.5489,
+    "current_price": 9907,
+    "max_price": 12183,
+    "min_price": 9907,
+    "peak_date": "2021-07",
+    "drop_from_peak": -18.7,
+    "change_pct_12m": -4.1,
+    "color": "#54A0FF",
+    "tier_name": "二线",
+    "source_type": "统计局估算",
+    "monthly": [
+      {
+        "label": "2025-02",
+        "price": 10333,
+        "change_pct": 0.0
+      },
+      {
+        "label": "2025-03",
+        "price": 10282,
+        "change_pct": -0.49
+      },
+      {
+        "label": "2025-04",
+        "price": 10220,
+        "change_pct": -0.6
+      },
+      {
+        "label": "2025-05",
+        "price": 10179,
+        "change_pct": -0.4
+      },
+      {
+        "label": "2025-06",
+        "price": 10128,
+        "change_pct": -0.5
+      },
+      {
+        "label": "2025-07",
+        "price": 10148,
+        "change_pct": 0.2
+      },
+      {
+        "label": "2025-08",
+        "price": 10128,
+        "change_pct": -0.2
+      },
+      {
+        "label": "2025-09",
+        "price": 10077,
+        "change_pct": -0.5
+      },
+      {
+        "label": "2025-10",
+        "price": 10047,
+        "change_pct": -0.3
+      },
+      {
+        "label": "2025-11",
+        "price": 9967,
+        "change_pct": -0.8
+      },
+      {
+        "label": "2025-12",
+        "price": 9947,
+        "change_pct": -0.2
+      },
+      {
+        "label": "2026-02",
+        "price": 9907,
+        "change_pct": -0.4
+      }
+    ]
+  },
+  "宁波": {
+    "map_name": "宁波",
+    "lat": 29.8683,
+    "lon": 121.544,
+    "current_price": 9130,
+    "max_price": 11516,
+    "min_price": 9130,
+    "peak_date": "2021-07",
+    "drop_from_peak": -20.7,
+    "change_pct_12m": -5.8,
+    "color": "#54A0FF",
+    "tier_name": "二线",
+    "source_type": "统计局估算",
+    "monthly": [
+      {
+        "label": "2025-02",
+        "price": 9697,
+        "change_pct": 0.0
+      },
+      {
+        "label": "2025-03",
+        "price": 9707,
+        "change_pct": 0.1
+      },
+      {
+        "label": "2025-04",
+        "price": 9649,
+        "change_pct": -0.6
+      },
+      {
+        "label": "2025-05",
+        "price": 9552,
+        "change_pct": -1.01
+      },
+      {
+        "label": "2025-06",
+        "price": 9504,
+        "change_pct": -0.5
+      },
+      {
+        "label": "2025-07",
+        "price": 9428,
+        "change_pct": -0.8
+      },
+      {
+        "label": "2025-08",
+        "price": 9343,
+        "change_pct": -0.9
+      },
+      {
+        "label": "2025-09",
+        "price": 9250,
+        "change_pct": -1.0
+      },
+      {
+        "label": "2025-10",
+        "price": 9167,
+        "change_pct": -0.9
+      },
+      {
+        "label": "2025-11",
+        "price": 9139,
+        "change_pct": -0.31
+      },
+      {
+        "label": "2025-12",
+        "price": 9130,
+        "change_pct": -0.1
+      },
+      {
+        "label": "2026-02",
+        "price": 9130,
+        "change_pct": 0.0
+      }
+    ]
+  },
+  "广州": {
+    "map_name": "广州",
+    "lat": 23.1291,
+    "lon": 113.2644,
+    "current_price": 24000,
+    "max_price": 39056,
+    "min_price": 24000,
+    "peak_date": "2022-08",
+    "drop_from_peak": -38.5,
+    "change_pct_12m": -12.1,
+    "color": "#FF9F43",
+    "tier_name": "一线",
+    "source_type": "安居客数据",
+    "monthly": [
+      {
+        "label": "2025-01",
+        "price": 27300,
+        "change_pct": 0.0
+      },
+      {
+        "label": "2025-02",
+        "price": 26800,
+        "change_pct": -1.83
+      },
+      {
+        "label": "2025-03",
+        "price": 26400,
+        "change_pct": -1.49
+      },
+      {
+        "label": "2025-04",
+        "price": 26000,
+        "change_pct": -1.52
+      },
+      {
+        "label": "2025-05",
+        "price": 25700,
+        "change_pct": -1.15
+      },
+      {
+        "label": "2025-06",
+        "price": 25400,
+        "change_pct": -1.17
+      },
+      {
+        "label": "2025-07",
+        "price": 25100,
+        "change_pct": -1.18
+      },
+      {
+        "label": "2025-08",
+        "price": 24800,
+        "change_pct": -1.2
+      },
+      {
+        "label": "2025-09",
+        "price": 24600,
+        "change_pct": -0.81
+      },
+      {
+        "label": "2025-10",
+        "price": 24400,
+        "change_pct": -0.81
+      },
+      {
+        "label": "2025-11",
+        "price": 24200,
+        "change_pct": -0.82
+      },
+      {
+        "label": "2025-12",
+        "price": 24000,
+        "change_pct": -0.83
+      }
+    ]
+  },
+  "成都": {
+    "map_name": "成都",
+    "lat": 30.5728,
+    "lon": 104.0668,
+    "current_price": 22942,
+    "max_price": 26222,
+    "min_price": 22942,
+    "peak_date": "2023-06",
+    "drop_from_peak": -12.5,
+    "change_pct_12m": -4.7,
+    "color": "#FF9F43",
+    "tier_name": "一线",
+    "source_type": "安居客数据",
+    "monthly": [
+      {
+        "label": "2025-02",
+        "price": 24074,
+        "change_pct": 0.0
+      },
+      {
+        "label": "2025-03",
+        "price": 24098,
+        "change_pct": 0.1
+      },
+      {
+        "label": "2025-04",
+        "price": 24122,
+        "change_pct": 0.1
+      },
+      {
+        "label": "2025-05",
+        "price": 24073,
+        "change_pct": -0.2
+      },
+      {
+        "label": "2025-06",
+        "price": 23977,
+        "change_pct": -0.4
+      },
+      {
+        "label": "2025-07",
+        "price": 23881,
+        "change_pct": -0.4
+      },
+      {
+        "label": "2025-08",
+        "price": 23714,
+        "change_pct": -0.7
+      },
+      {
+        "label": "2025-09",
+        "price": 23572,
+        "change_pct": -0.6
+      },
+      {
+        "label": "2025-10",
+        "price": 23383,
+        "change_pct": -0.8
+      },
+      {
+        "label": "2025-11",
+        "price": 23173,
+        "change_pct": -0.9
+      },
+      {
+        "label": "2025-12",
+        "price": 23011,
+        "change_pct": -0.7
+      },
+      {
+        "label": "2026-02",
+        "price": 22942,
+        "change_pct": -0.3
+      }
+    ]
+  },
+  "昆明": {
+    "map_name": "昆明",
+    "lat": 25.0389,
+    "lon": 102.7183,
+    "current_price": 9344,
+    "max_price": 11264,
+    "min_price": 9344,
+    "peak_date": "2023-05",
+    "drop_from_peak": -17.0,
+    "change_pct_12m": -6.7,
+    "color": "#54A0FF",
+    "tier_name": "二线",
+    "source_type": "统计局估算",
+    "monthly": [
+      {
+        "label": "2025-02",
+        "price": 10014,
+        "change_pct": 0.0
+      },
+      {
+        "label": "2025-03",
+        "price": 9984,
+        "change_pct": -0.3
+      },
+      {
+        "label": "2025-04",
+        "price": 9904,
+        "change_pct": -0.8
+      },
+      {
+        "label": "2025-05",
+        "price": 9845,
+        "change_pct": -0.6
+      },
+      {
+        "label": "2025-06",
+        "price": 9776,
+        "change_pct": -0.7
+      },
+      {
+        "label": "2025-07",
+        "price": 9737,
+        "change_pct": -0.4
+      },
+      {
+        "label": "2025-08",
+        "price": 9688,
+        "change_pct": -0.5
+      },
+      {
+        "label": "2025-09",
+        "price": 9620,
+        "change_pct": -0.7
+      },
+      {
+        "label": "2025-10",
+        "price": 9562,
+        "change_pct": -0.6
+      },
+      {
+        "label": "2025-11",
+        "price": 9486,
+        "change_pct": -0.79
+      },
+      {
+        "label": "2025-12",
+        "price": 9429,
+        "change_pct": -0.6
+      },
+      {
+        "label": "2026-02",
+        "price": 9344,
+        "change_pct": -0.9
+      }
+    ]
+  },
+  "杭州": {
+    "map_name": "杭州",
+    "lat": 30.2741,
+    "lon": 120.1551,
+    "current_price": 24400,
+    "max_price": 37493,
+    "min_price": 24400,
+    "peak_date": "2023-03",
+    "drop_from_peak": -34.9,
+    "change_pct_12m": -11.9,
+    "color": "#FF9F43",
+    "tier_name": "一线",
+    "source_type": "安居客数据",
+    "monthly": [
+      {
+        "label": "2025-01",
+        "price": 27700,
+        "change_pct": 0.0
+      },
+      {
+        "label": "2025-02",
+        "price": 27200,
+        "change_pct": -1.81
+      },
+      {
+        "label": "2025-03",
+        "price": 26800,
+        "change_pct": -1.47
+      },
+      {
+        "label": "2025-04",
+        "price": 26400,
+        "change_pct": -1.49
+      },
+      {
+        "label": "2025-05",
+        "price": 26100,
+        "change_pct": -1.14
+      },
+      {
+        "label": "2025-06",
+        "price": 25800,
+        "change_pct": -1.15
+      },
+      {
+        "label": "2025-07",
+        "price": 25500,
+        "change_pct": -1.16
+      },
+      {
+        "label": "2025-08",
+        "price": 25200,
+        "change_pct": -1.18
+      },
+      {
+        "label": "2025-09",
+        "price": 25000,
+        "change_pct": -0.79
+      },
+      {
+        "label": "2025-10",
+        "price": 24800,
+        "change_pct": -0.8
+      },
+      {
+        "label": "2025-11",
+        "price": 24600,
+        "change_pct": -0.81
+      },
+      {
+        "label": "2025-12",
+        "price": 24400,
+        "change_pct": -0.81
+      }
+    ]
+  },
+  "武汉": {
+    "map_name": "武汉",
+    "lat": 30.5928,
+    "lon": 114.3055,
+    "current_price": 10300,
+    "max_price": 17548,
+    "min_price": 10300,
+    "peak_date": "2021-08",
+    "drop_from_peak": -41.3,
+    "change_pct_12m": -12.7,
+    "color": "#FF9F43",
+    "tier_name": "一线",
+    "source_type": "安居客数据",
+    "monthly": [
+      {
+        "label": "2025-01",
+        "price": 11800,
+        "change_pct": 0.0
+      },
+      {
+        "label": "2025-02",
+        "price": 11500,
+        "change_pct": -2.54
+      },
+      {
+        "label": "2025-03",
+        "price": 11300,
+        "change_pct": -1.74
+      },
+      {
+        "label": "2025-04",
+        "price": 11100,
+        "change_pct": -1.77
+      },
+      {
+        "label": "2025-05",
+        "price": 11000,
+        "change_pct": -0.9
+      },
+      {
+        "label": "2025-06",
+        "price": 10900,
+        "change_pct": -0.91
+      },
+      {
+        "label": "2025-07",
+        "price": 10800,
+        "change_pct": -0.92
+      },
+      {
+        "label": "2025-08",
+        "price": 10700,
+        "change_pct": -0.93
+      },
+      {
+        "label": "2025-09",
+        "price": 10600,
+        "change_pct": -0.93
+      },
+      {
+        "label": "2025-10",
+        "price": 10500,
+        "change_pct": -0.94
+      },
+      {
+        "label": "2025-11",
+        "price": 10400,
+        "change_pct": -0.95
+      },
+      {
+        "label": "2025-12",
+        "price": 10300,
+        "change_pct": -0.96
+      }
+    ]
+  },
+  "沈阳": {
+    "map_name": "沈阳",
+    "lat": 41.8057,
+    "lon": 123.4315,
+    "current_price": 9661,
+    "max_price": 12415,
+    "min_price": 9642,
+    "peak_date": "2021-08",
+    "drop_from_peak": -22.2,
+    "change_pct_12m": -3.0,
+    "color": "#54A0FF",
+    "tier_name": "二线",
+    "source_type": "统计局估算",
+    "monthly": [
+      {
+        "label": "2025-02",
+        "price": 9956,
+        "change_pct": 0.0
+      },
+      {
+        "label": "2025-03",
+        "price": 9936,
+        "change_pct": -0.2
+      },
+      {
+        "label": "2025-04",
+        "price": 9886,
+        "change_pct": -0.5
+      },
+      {
+        "label": "2025-05",
+        "price": 9866,
+        "change_pct": -0.2
+      },
+      {
+        "label": "2025-06",
+        "price": 9827,
+        "change_pct": -0.4
+      },
+      {
+        "label": "2025-07",
+        "price": 9797,
+        "change_pct": -0.31
+      },
+      {
+        "label": "2025-08",
+        "price": 9758,
+        "change_pct": -0.4
+      },
+      {
+        "label": "2025-09",
+        "price": 9700,
+        "change_pct": -0.59
+      },
+      {
+        "label": "2025-10",
+        "price": 9680,
+        "change_pct": -0.21
+      },
+      {
+        "label": "2025-11",
+        "price": 9671,
+        "change_pct": -0.09
+      },
+      {
+        "label": "2025-12",
+        "price": 9642,
+        "change_pct": -0.3
+      },
+      {
+        "label": "2026-02",
+        "price": 9661,
+        "change_pct": 0.2
+      }
+    ]
+  },
+  "济南": {
+    "map_name": "济南",
+    "lat": 36.6512,
+    "lon": 116.9972,
+    "current_price": 9335,
+    "max_price": 11725,
+    "min_price": 9335,
+    "peak_date": "2021-08",
+    "drop_from_peak": -20.4,
+    "change_pct_12m": -4.2,
+    "color": "#54A0FF",
+    "tier_name": "二线",
+    "source_type": "统计局估算",
+    "monthly": [
+      {
+        "label": "2025-02",
+        "price": 9746,
+        "change_pct": 0.0
+      },
+      {
+        "label": "2025-03",
+        "price": 9746,
+        "change_pct": 0.0
+      },
+      {
+        "label": "2025-04",
+        "price": 9736,
+        "change_pct": -0.1
+      },
+      {
+        "label": "2025-05",
+        "price": 9697,
+        "change_pct": -0.4
+      },
+      {
+        "label": "2025-06",
+        "price": 9649,
+        "change_pct": -0.49
+      },
+      {
+        "label": "2025-07",
+        "price": 9610,
+        "change_pct": -0.4
+      },
+      {
+        "label": "2025-08",
+        "price": 9553,
+        "change_pct": -0.59
+      },
+      {
+        "label": "2025-09",
+        "price": 9486,
+        "change_pct": -0.7
+      },
+      {
+        "label": "2025-10",
+        "price": 9429,
+        "change_pct": -0.6
+      },
+      {
+        "label": "2025-11",
+        "price": 9382,
+        "change_pct": -0.5
+      },
+      {
+        "label": "2025-12",
+        "price": 9363,
+        "change_pct": -0.2
+      },
+      {
+        "label": "2026-02",
+        "price": 9335,
+        "change_pct": -0.3
+      }
+    ]
+  },
+  "海口": {
+    "map_name": "海口",
+    "lat": 20.0174,
+    "lon": 110.3492,
+    "current_price": 9354,
+    "max_price": 11608,
+    "min_price": 9354,
+    "peak_date": "2022-06",
+    "drop_from_peak": -19.4,
+    "change_pct_12m": -5.5,
+    "color": "#54A0FF",
+    "tier_name": "二线",
+    "source_type": "统计局估算",
+    "monthly": [
+      {
+        "label": "2025-02",
+        "price": 9895,
+        "change_pct": 0.0
+      },
+      {
+        "label": "2025-03",
+        "price": 9875,
+        "change_pct": -0.2
+      },
+      {
+        "label": "2025-04",
+        "price": 9845,
+        "change_pct": -0.3
+      },
+      {
+        "label": "2025-05",
+        "price": 9836,
+        "change_pct": -0.09
+      },
+      {
+        "label": "2025-06",
+        "price": 9796,
+        "change_pct": -0.41
+      },
+      {
+        "label": "2025-07",
+        "price": 9737,
+        "change_pct": -0.6
+      },
+      {
+        "label": "2025-08",
+        "price": 9669,
+        "change_pct": -0.7
+      },
+      {
+        "label": "2025-09",
+        "price": 9592,
+        "change_pct": -0.8
+      },
+      {
+        "label": "2025-10",
+        "price": 9534,
+        "change_pct": -0.6
+      },
+      {
+        "label": "2025-11",
+        "price": 9439,
+        "change_pct": -1.0
+      },
+      {
+        "label": "2025-12",
+        "price": 9382,
+        "change_pct": -0.6
+      },
+      {
+        "label": "2026-02",
+        "price": 9354,
+        "change_pct": -0.3
+      }
+    ]
+  },
+  "深圳": {
+    "map_name": "深圳",
+    "lat": 22.5431,
+    "lon": 114.0579,
+    "current_price": 41562,
+    "max_price": 65103,
+    "min_price": 41562,
+    "peak_date": "2024-01",
+    "drop_from_peak": -36.2,
+    "change_pct_12m": -18.5,
+    "color": "#FF4B4B",
+    "tier_name": "北上深",
+    "source_type": "安居客数据",
+    "monthly": [
+      {
+        "label": "2025-01",
+        "price": 51023,
+        "change_pct": 0.0
+      },
+      {
+        "label": "2025-02",
+        "price": 49512,
+        "change_pct": -2.96
+      },
+      {
+        "label": "2025-03",
+        "price": 48321,
+        "change_pct": -2.41
+      },
+      {
+        "label": "2025-04",
+        "price": 47123,
+        "change_pct": -2.48
+      },
+      {
+        "label": "2025-05",
+        "price": 46152,
+        "change_pct": -2.06
+      },
+      {
+        "label": "2025-06",
+        "price": 45231,
+        "change_pct": -2.0
+      },
+      {
+        "label": "2025-07",
+        "price": 44512,
+        "change_pct": -1.59
+      },
+      {
+        "label": "2025-08",
+        "price": 43891,
+        "change_pct": -1.4
+      },
+      {
+        "label": "2025-09",
+        "price": 43215,
+        "change_pct": -1.54
+      },
+      {
+        "label": "2025-10",
+        "price": 42789,
+        "change_pct": -0.99
+      },
+      {
+        "label": "2025-11",
+        "price": 42123,
+        "change_pct": -1.56
+      },
+      {
+        "label": "2025-12",
+        "price": 41562,
+        "change_pct": -1.33
+      }
+    ]
+  },
+  "石家庄": {
+    "map_name": "石家庄",
+    "lat": 38.0428,
+    "lon": 114.5149,
+    "current_price": 9661,
+    "max_price": 12144,
+    "min_price": 9661,
+    "peak_date": "2021-05",
+    "drop_from_peak": -20.4,
+    "change_pct_12m": -4.9,
+    "color": "#54A0FF",
+    "tier_name": "二线",
+    "source_type": "统计局估算",
+    "monthly": [
+      {
+        "label": "2025-02",
+        "price": 10157,
+        "change_pct": 0.0
+      },
+      {
+        "label": "2025-03",
+        "price": 10147,
+        "change_pct": -0.1
+      },
+      {
+        "label": "2025-04",
+        "price": 10117,
+        "change_pct": -0.3
+      },
+      {
+        "label": "2025-05",
+        "price": 10076,
+        "change_pct": -0.41
+      },
+      {
+        "label": "2025-06",
+        "price": 10016,
+        "change_pct": -0.6
+      },
+      {
+        "label": "2025-07",
+        "price": 9946,
+        "change_pct": -0.7
+      },
+      {
+        "label": "2025-08",
+        "price": 9886,
+        "change_pct": -0.6
+      },
+      {
+        "label": "2025-09",
+        "price": 9817,
+        "change_pct": -0.7
+      },
+      {
+        "label": "2025-10",
+        "price": 9768,
+        "change_pct": -0.5
+      },
+      {
+        "label": "2025-11",
+        "price": 9709,
+        "change_pct": -0.6
+      },
+      {
+        "label": "2025-12",
+        "price": 9690,
+        "change_pct": -0.2
+      },
+      {
+        "label": "2026-02",
+        "price": 9661,
+        "change_pct": -0.3
+      }
+    ]
+  },
+  "福州": {
+    "map_name": "福州",
+    "lat": 26.0745,
+    "lon": 119.2965,
+    "current_price": 8958,
+    "max_price": 11713,
+    "min_price": 8958,
+    "peak_date": "2021-07",
+    "drop_from_peak": -23.5,
+    "change_pct_12m": -6.0,
+    "color": "#54A0FF",
+    "tier_name": "二线",
+    "source_type": "统计局估算",
+    "monthly": [
+      {
+        "label": "2025-02",
+        "price": 9532,
+        "change_pct": 0.0
+      },
+      {
+        "label": "2025-03",
+        "price": 9513,
+        "change_pct": -0.2
+      },
+      {
+        "label": "2025-04",
+        "price": 9475,
+        "change_pct": -0.4
+      },
+      {
+        "label": "2025-05",
+        "price": 9418,
+        "change_pct": -0.6
+      },
+      {
+        "label": "2025-06",
+        "price": 9371,
+        "change_pct": -0.5
+      },
+      {
+        "label": "2025-07",
+        "price": 9315,
+        "change_pct": -0.6
+      },
+      {
+        "label": "2025-08",
+        "price": 9269,
+        "change_pct": -0.49
+      },
+      {
+        "label": "2025-09",
+        "price": 9204,
+        "change_pct": -0.7
+      },
+      {
+        "label": "2025-10",
+        "price": 9158,
+        "change_pct": -0.5
+      },
+      {
+        "label": "2025-11",
+        "price": 9094,
+        "change_pct": -0.7
+      },
+      {
+        "label": "2025-12",
+        "price": 9021,
+        "change_pct": -0.8
+      },
+      {
+        "label": "2026-02",
+        "price": 8958,
+        "change_pct": -0.7
+      }
+    ]
+  },
+  "西宁": {
+    "map_name": "西宁",
+    "lat": 36.6171,
+    "lon": 101.7782,
+    "current_price": 9778,
+    "max_price": 11644,
+    "min_price": 9778,
+    "peak_date": "2021-09",
+    "drop_from_peak": -16.0,
+    "change_pct_12m": -1.5,
+    "color": "#54A0FF",
+    "tier_name": "二线",
+    "source_type": "统计局估算",
+    "monthly": [
+      {
+        "label": "2025-02",
+        "price": 9926,
+        "change_pct": 0.0
+      },
+      {
+        "label": "2025-03",
+        "price": 9926,
+        "change_pct": 0.0
+      },
+      {
+        "label": "2025-04",
+        "price": 9936,
+        "change_pct": 0.1
+      },
+      {
+        "label": "2025-05",
+        "price": 9926,
+        "change_pct": -0.1
+      },
+      {
+        "label": "2025-06",
+        "price": 9936,
+        "change_pct": 0.1
+      },
+      {
+        "label": "2025-07",
+        "price": 9936,
+        "change_pct": 0.0
+      },
+      {
+        "label": "2025-08",
+        "price": 9916,
+        "change_pct": -0.2
+      },
+      {
+        "label": "2025-09",
+        "price": 9906,
+        "change_pct": -0.1
+      },
+      {
+        "label": "2025-10",
+        "price": 9896,
+        "change_pct": -0.1
+      },
+      {
+        "label": "2025-11",
+        "price": 9866,
+        "change_pct": -0.3
+      },
+      {
+        "label": "2025-12",
+        "price": 9837,
+        "change_pct": -0.29
+      },
+      {
+        "label": "2026-02",
+        "price": 9778,
+        "change_pct": -0.6
+      }
+    ]
+  },
+  "西安": {
+    "map_name": "西安",
+    "lat": 34.3416,
+    "lon": 108.9398,
+    "current_price": 9243,
+    "max_price": 11379,
+    "min_price": 9243,
+    "peak_date": "2021-09",
+    "drop_from_peak": -18.8,
+    "change_pct_12m": -8.0,
+    "color": "#54A0FF",
+    "tier_name": "二线",
+    "source_type": "统计局估算",
+    "monthly": [
+      {
+        "label": "2025-02",
+        "price": 10046,
+        "change_pct": 0.0
+      },
+      {
+        "label": "2025-03",
+        "price": 10016,
+        "change_pct": -0.3
+      },
+      {
+        "label": "2025-04",
+        "price": 9976,
+        "change_pct": -0.4
+      },
+      {
+        "label": "2025-05",
+        "price": 9906,
+        "change_pct": -0.7
+      },
+      {
+        "label": "2025-06",
+        "price": 9827,
+        "change_pct": -0.8
+      },
+      {
+        "label": "2025-07",
+        "price": 9739,
+        "change_pct": -0.9
+      },
+      {
+        "label": "2025-08",
+        "price": 9632,
+        "change_pct": -1.1
+      },
+      {
+        "label": "2025-09",
+        "price": 9516,
+        "change_pct": -1.2
+      },
+      {
+        "label": "2025-10",
+        "price": 9421,
+        "change_pct": -1.0
+      },
+      {
+        "label": "2025-11",
+        "price": 9317,
+        "change_pct": -1.1
+      },
+      {
+        "label": "2025-12",
+        "price": 9271,
+        "change_pct": -0.49
+      },
+      {
+        "label": "2026-02",
+        "price": 9243,
+        "change_pct": -0.3
+      }
+    ]
+  },
+  "贵阳": {
+    "map_name": "贵阳",
+    "lat": 26.647,
+    "lon": 106.6302,
+    "current_price": 9623,
+    "max_price": 11999,
+    "min_price": 9623,
+    "peak_date": "2021-05",
+    "drop_from_peak": -19.8,
+    "change_pct_12m": -4.6,
+    "color": "#54A0FF",
+    "tier_name": "二线",
+    "source_type": "统计局估算",
+    "monthly": [
+      {
+        "label": "2025-02",
+        "price": 10087,
+        "change_pct": 0.0
+      },
+      {
+        "label": "2025-03",
+        "price": 10067,
+        "change_pct": -0.2
+      },
+      {
+        "label": "2025-04",
+        "price": 10027,
+        "change_pct": -0.4
+      },
+      {
+        "label": "2025-05",
+        "price": 9977,
+        "change_pct": -0.5
+      },
+      {
+        "label": "2025-06",
+        "price": 9917,
+        "change_pct": -0.6
+      },
+      {
+        "label": "2025-07",
+        "price": 9857,
+        "change_pct": -0.61
+      },
+      {
+        "label": "2025-08",
+        "price": 9818,
+        "change_pct": -0.4
+      },
+      {
+        "label": "2025-09",
+        "price": 9759,
+        "change_pct": -0.6
+      },
+      {
+        "label": "2025-10",
+        "price": 9710,
+        "change_pct": -0.5
+      },
+      {
+        "label": "2025-11",
+        "price": 9681,
+        "change_pct": -0.3
+      },
+      {
+        "label": "2025-12",
+        "price": 9652,
+        "change_pct": -0.3
+      },
+      {
+        "label": "2026-02",
+        "price": 9623,
+        "change_pct": -0.3
+      }
+    ]
+  },
+  "郑州": {
+    "map_name": "郑州",
+    "lat": 34.7466,
+    "lon": 113.6253,
+    "current_price": 8870,
+    "max_price": 12279,
+    "min_price": 8870,
+    "peak_date": "2021-07",
+    "drop_from_peak": -27.8,
+    "change_pct_12m": -8.0,
+    "color": "#54A0FF",
+    "tier_name": "二线",
+    "source_type": "统计局估算",
+    "monthly": [
+      {
+        "label": "2025-02",
+        "price": 9641,
+        "change_pct": 0.0
+      },
+      {
+        "label": "2025-03",
+        "price": 9573,
+        "change_pct": -0.71
+      },
+      {
+        "label": "2025-04",
+        "price": 9497,
+        "change_pct": -0.79
+      },
+      {
+        "label": "2025-05",
+        "price": 9430,
+        "change_pct": -0.71
+      },
+      {
+        "label": "2025-06",
+        "price": 9345,
+        "change_pct": -0.9
+      },
+      {
+        "label": "2025-07",
+        "price": 9280,
+        "change_pct": -0.7
+      },
+      {
+        "label": "2025-08",
+        "price": 9196,
+        "change_pct": -0.91
+      },
+      {
+        "label": "2025-09",
+        "price": 9104,
+        "change_pct": -1.0
+      },
+      {
+        "label": "2025-10",
+        "price": 9031,
+        "change_pct": -0.8
+      },
+      {
+        "label": "2025-11",
+        "price": 8968,
+        "change_pct": -0.7
+      },
+      {
+        "label": "2025-12",
+        "price": 8887,
+        "change_pct": -0.9
+      },
+      {
+        "label": "2026-02",
+        "price": 8870,
+        "change_pct": -0.19
+      }
+    ]
+  },
+  "重庆": {
+    "map_name": "重庆",
+    "lat": 29.4316,
+    "lon": 106.9123,
+    "current_price": 22040,
+    "max_price": 27053,
+    "min_price": 22040,
+    "peak_date": "2021-09",
+    "drop_from_peak": -18.5,
+    "change_pct_12m": -5.3,
+    "color": "#FF9F43",
+    "tier_name": "一线",
+    "source_type": "安居客数据",
+    "monthly": [
+      {
+        "label": "2025-02",
+        "price": 23267,
+        "change_pct": 0.0
+      },
+      {
+        "label": "2025-03",
+        "price": 23221,
+        "change_pct": -0.2
+      },
+      {
+        "label": "2025-04",
+        "price": 23174,
+        "change_pct": -0.2
+      },
+      {
+        "label": "2025-05",
+        "price": 23151,
+        "change_pct": -0.1
+      },
+      {
+        "label": "2025-06",
+        "price": 22989,
+        "change_pct": -0.7
+      },
+      {
+        "label": "2025-07",
+        "price": 22874,
+        "change_pct": -0.5
+      },
+      {
+        "label": "2025-08",
+        "price": 22691,
+        "change_pct": -0.8
+      },
+      {
+        "label": "2025-09",
+        "price": 22487,
+        "change_pct": -0.9
+      },
+      {
+        "label": "2025-10",
+        "price": 22307,
+        "change_pct": -0.8
+      },
+      {
+        "label": "2025-11",
+        "price": 22218,
+        "change_pct": -0.4
+      },
+      {
+        "label": "2025-12",
+        "price": 22151,
+        "change_pct": -0.3
+      },
+      {
+        "label": "2026-02",
+        "price": 22040,
+        "change_pct": -0.5
+      }
+    ]
+  },
+  "银川": {
+    "map_name": "银川",
+    "lat": 38.4872,
+    "lon": 106.2309,
+    "current_price": 9632,
+    "max_price": 11725,
+    "min_price": 9632,
+    "peak_date": "2021-07",
+    "drop_from_peak": -17.9,
+    "change_pct_12m": -5.2,
+    "color": "#54A0FF",
+    "tier_name": "二线",
+    "source_type": "统计局估算",
+    "monthly": [
+      {
+        "label": "2025-02",
+        "price": 10158,
+        "change_pct": 0.0
+      },
+      {
+        "label": "2025-03",
+        "price": 10118,
+        "change_pct": -0.39
+      },
+      {
+        "label": "2025-04",
+        "price": 10097,
+        "change_pct": -0.21
+      },
+      {
+        "label": "2025-05",
+        "price": 10047,
+        "change_pct": -0.5
+      },
+      {
+        "label": "2025-06",
+        "price": 9966,
+        "change_pct": -0.81
+      },
+      {
+        "label": "2025-07",
+        "price": 9937,
+        "change_pct": -0.29
+      },
+      {
+        "label": "2025-08",
+        "price": 9887,
+        "change_pct": -0.5
+      },
+      {
+        "label": "2025-09",
+        "price": 9837,
+        "change_pct": -0.51
+      },
+      {
+        "label": "2025-10",
+        "price": 9769,
+        "change_pct": -0.69
+      },
+      {
+        "label": "2025-11",
+        "price": 9671,
+        "change_pct": -1.0
+      },
+      {
+        "label": "2025-12",
+        "price": 9652,
+        "change_pct": -0.2
+      },
+      {
+        "label": "2026-02",
+        "price": 9632,
+        "change_pct": -0.21
+      }
+    ]
+  },
+  "长春": {
+    "map_name": "长春",
+    "lat": 43.8171,
+    "lon": 125.3235,
+    "current_price": 9661,
+    "max_price": 12378,
+    "min_price": 9613,
+    "peak_date": "2021-09",
+    "drop_from_peak": -22.0,
+    "change_pct_12m": -3.0,
+    "color": "#54A0FF",
+    "tier_name": "二线",
+    "source_type": "统计局估算",
+    "monthly": [
+      {
+        "label": "2025-02",
+        "price": 9956,
+        "change_pct": 0.0
+      },
+      {
+        "label": "2025-03",
+        "price": 9916,
+        "change_pct": -0.4
+      },
+      {
+        "label": "2025-04",
+        "price": 9886,
+        "change_pct": -0.3
+      },
+      {
+        "label": "2025-05",
+        "price": 9837,
+        "change_pct": -0.5
+      },
+      {
+        "label": "2025-06",
+        "price": 9778,
+        "change_pct": -0.6
+      },
+      {
+        "label": "2025-07",
+        "price": 9729,
+        "change_pct": -0.5
+      },
+      {
+        "label": "2025-08",
+        "price": 9739,
+        "change_pct": 0.1
+      },
+      {
+        "label": "2025-09",
+        "price": 9700,
+        "change_pct": -0.4
+      },
+      {
+        "label": "2025-10",
+        "price": 9642,
+        "change_pct": -0.6
+      },
+      {
+        "label": "2025-11",
+        "price": 9613,
+        "change_pct": -0.3
+      },
+      {
+        "label": "2025-12",
+        "price": 9632,
+        "change_pct": 0.2
+      },
+      {
+        "label": "2026-02",
+        "price": 9661,
+        "change_pct": 0.3
+      }
+    ]
+  },
+  "长沙": {
+    "map_name": "长沙",
+    "lat": 28.2282,
+    "lon": 112.9388,
+    "current_price": 9132,
+    "max_price": 11185,
+    "min_price": 9132,
+    "peak_date": "2023-06",
+    "drop_from_peak": -18.4,
+    "change_pct_12m": -7.3,
+    "color": "#54A0FF",
+    "tier_name": "二线",
+    "source_type": "统计局估算",
+    "monthly": [
+      {
+        "label": "2025-02",
+        "price": 9846,
+        "change_pct": 0.0
+      },
+      {
+        "label": "2025-03",
+        "price": 9796,
+        "change_pct": -0.51
+      },
+      {
+        "label": "2025-04",
+        "price": 9757,
+        "change_pct": -0.4
+      },
+      {
+        "label": "2025-05",
+        "price": 9689,
+        "change_pct": -0.7
+      },
+      {
+        "label": "2025-06",
+        "price": 9573,
+        "change_pct": -1.2
+      },
+      {
+        "label": "2025-07",
+        "price": 9506,
+        "change_pct": -0.7
+      },
+      {
+        "label": "2025-08",
+        "price": 9430,
+        "change_pct": -0.8
+      },
+      {
+        "label": "2025-09",
+        "price": 9354,
+        "change_pct": -0.81
+      },
+      {
+        "label": "2025-10",
+        "price": 9261,
+        "change_pct": -0.99
+      },
+      {
+        "label": "2025-11",
+        "price": 9214,
+        "change_pct": -0.51
+      },
+      {
+        "label": "2025-12",
+        "price": 9177,
+        "change_pct": -0.4
+      },
+      {
+        "label": "2026-02",
+        "price": 9132,
+        "change_pct": -0.49
+      }
+    ]
+  },
+  "青岛": {
+    "map_name": "青岛",
+    "lat": 36.0671,
+    "lon": 120.3826,
+    "current_price": 9243,
+    "max_price": 11749,
+    "min_price": 9243,
+    "peak_date": "2021-08",
+    "drop_from_peak": -21.3,
+    "change_pct_12m": -5.5,
+    "color": "#54A0FF",
+    "tier_name": "二线",
+    "source_type": "统计局估算",
+    "monthly": [
+      {
+        "label": "2025-02",
+        "price": 9777,
+        "change_pct": 0.0
+      },
+      {
+        "label": "2025-03",
+        "price": 9767,
+        "change_pct": -0.1
+      },
+      {
+        "label": "2025-04",
+        "price": 9738,
+        "change_pct": -0.3
+      },
+      {
+        "label": "2025-05",
+        "price": 9718,
+        "change_pct": -0.21
+      },
+      {
+        "label": "2025-06",
+        "price": 9669,
+        "change_pct": -0.5
+      },
+      {
+        "label": "2025-07",
+        "price": 9611,
+        "change_pct": -0.6
+      },
+      {
+        "label": "2025-08",
+        "price": 9515,
+        "change_pct": -1.0
+      },
+      {
+        "label": "2025-09",
+        "price": 9458,
+        "change_pct": -0.6
+      },
+      {
+        "label": "2025-10",
+        "price": 9383,
+        "change_pct": -0.79
+      },
+      {
+        "label": "2025-11",
+        "price": 9326,
+        "change_pct": -0.61
+      },
+      {
+        "label": "2025-12",
+        "price": 9280,
+        "change_pct": -0.49
+      },
+      {
+        "label": "2026-02",
+        "price": 9243,
+        "change_pct": -0.4
+      }
+    ]
+  }
+};
+
+        const mapChart = echarts.init(document.getElementById('map'));
+        const lineChart = echarts.init(document.getElementById('line-chart'));
+
+        // 构建地图数据
+        const mapData = Object.entries(CITY_DATA).map(([city, info]) => ({{
+            name: info.map_name,
+            value: [info.lon, info.lat, info.current_price, info.change_pct_12m, info.drop_from_peak],
+            cityRealName: city,
+        }}));
+
+        const mapOption = {{
+            backgroundColor: 'transparent',
+            tooltip: {{
+                trigger: 'item',
+                formatter: function(params) {{
+                    const d = params.value;
+                    return '<b>' + params.data.cityRealName + '</b><br/>' +
+                        '均价: ¥' + d[2].toLocaleString() + '/m²<br/>' +
+                        '12月变化: ' + d[3].toFixed(1) + '%<br/>' +
+                        '距峰值: ' + d[4].toFixed(1) + '%';
+                }}
+            }},
+            geo: {{
+                map: 'china',
+                roam: true,
+                zoom: 1.2,
+                center: [104.5, 36],
+                label: {{ show: false }},
+                itemStyle: {{
+                    areaColor: '#1a1a2e',
+                    borderColor: '#333',
+                }},
+                emphasis: {{
+                    itemStyle: {{
+                        areaColor: '#2a2a4e',
+                    }},
+                    label: {{ show: false }}
+                }}
+            }},
+            series: [{{
+                type: 'scatter',
+                coordinateSystem: 'geo',
+                data: mapData,
+                symbolSize: function(val) {{
+                    return Math.max(8, val[2] / 2000);
+                }},
+                itemStyle: {{
+                    color: function(params) {{
+                        return CITY_DATA[params.data.cityRealName]?.color || '#54a0ff';
+                    }},
+                    shadowBlur: 10,
+                    shadowColor: 'rgba(0,0,0,0.5)',
+                }},
+                emphasis: {{
+                    scale: 2,
+                    itemStyle: {{
+                        shadowBlur: 20,
+                        borderColor: '#fff',
+                        borderWidth: 2,
+                    }}
+                }},
+                label: {{
+                    show: true,
+                    position: 'bottom',
+                    formatter: function(params) {{
+                        return params.data.cityRealName;
+                    }},
+                    fontSize: 10,
+                    color: '#ccc',
+                }}
+            }}]
+        }};
+
+        mapChart.setOption(mapOption);
+
+        // 点击事件
+        mapChart.on('click', function(params) {{
+            const cityName = params.data.cityRealName;
+            if (!cityName || !CITY_DATA[cityName]) return;
+            showCityDetail(cityName, CITY_DATA[cityName]);
+        }});
+
+        function showCityDetail(cityName, info) {{
+            document.getElementById('hint').style.display = 'none';
+            document.getElementById('city-stats').style.display = 'grid';
+            document.getElementById('panel-title').textContent = cityName + ' 房价详情';
+
+            const statsHtml = `
+                <div class="stat-card">
+                    <div class="label">当前均价</div>
+                    <div class="value">¥${{info.current_price.toLocaleString()}}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">历史峰值</div>
+                    <div class="value" style="color:#FF9F43">¥${{info.max_price.toLocaleString()}}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">距峰值跌幅</div>
+                    <div class="value ${{info.drop_from_peak < 0 ? 'red' : 'green'}}">${{info.drop_from_peak}}%</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">12月变化</div>
+                    <div class="value ${{info.change_pct_12m >= 0 ? 'green' : 'red'}}">${{info.change_pct_12m}}%</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">峰值时间</div>
+                    <div class="value">${{info.peak_date}}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">数据来源</div>
+                    <div class="value" style="font-size:13px">${{info.source_type}}</div>
+                </div>
+            `;
+            document.getElementById('city-stats').innerHTML = statsHtml;
+
+            // 折线图
+            const monthly = info.monthly || [];
+            const months = monthly.map(m => m.label);
+            const prices = monthly.map(m => m.price);
+            const changes = monthly.map(m => m.change_pct || 0);
+
+            lineChart.setOption({{
+                backgroundColor: 'transparent',
+                tooltip: {{
+                    trigger: 'axis',
+                    formatter: function(params) {{
+                        let html = params[0].axisValue + '<br/>';
+                        params.forEach(p => {{
+                            html += p.marker + ' ' + p.seriesName + ': ';
+                            if (p.seriesName === '均价') html += '¥' + p.value.toLocaleString() + '/m²';
+                            else html += p.value.toFixed(1) + '%';
+                            html += '<br/>';
+                        }});
+                        return html;
+                    }}
+                }},
+                grid: {{ top: 30, right: 50, bottom: 30, left: 60 }},
+                xAxis: {{
+                    type: 'category',
+                    data: months,
+                    axisLabel: {{ fontSize: 10, color: '#888', rotate: 45 }},
+                    axisLine: {{ lineStyle: {{ color: '#333' }} }},
+                }},
+                yAxis: [
+                    {{
+                        type: 'value',
+                        name: '均价 (元/m²)',
+                        nameTextStyle: {{ fontSize: 10, color: '#888' }},
+                        axisLabel: {{ fontSize: 10, color: '#888' }},
+                        splitLine: {{ lineStyle: {{ color: '#222' }} }},
+                    }},
+                    {{
+                        type: 'value',
+                        name: '环比(%)',
+                        nameTextStyle: {{ fontSize: 10, color: '#888' }},
+                        axisLabel: {{ fontSize: 10, color: '#888' }},
+                        splitLine: {{ show: false }},
+                    }}
+                ],
+                series: [
+                    {{
+                        name: '均价',
+                        type: 'line',
+                        data: prices,
+                        smooth: true,
+                        lineStyle: {{ color: '#54a0ff', width: 3 }},
+                        itemStyle: {{ color: '#54a0ff' }},
+                        areaStyle: {{
+                            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                {{ offset: 0, color: 'rgba(84,160,255,0.3)' }},
+                                {{ offset: 1, color: 'rgba(84,160,255,0.02)' }},
+                            ])
+                        }},
+                    }},
+                    {{
+                        name: '环比',
+                        type: 'bar',
+                        yAxisIndex: 1,
+                        data: changes.map(v => ({{
+                            value: v,
+                            itemStyle: {{ color: v >= 0 ? 'rgba(78,205,196,0.6)' : 'rgba(255,107,107,0.6)' }}
+                        }})),
+                    }}
+                ]
+            }});
+        }}
+
+        window.addEventListener('resize', () => {{
+            mapChart.resize();
+            lineChart.resize();
+        }});
+    </script>
+</body>
+</html>

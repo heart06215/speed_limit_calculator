@@ -1,0 +1,1393 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>道路护栏安全设计系统 v4.1 — 车辆撞击护栏模拟</title>
+    <style>
+        /* Bio-Futurism Design */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --black: #1A1A1A;--white: #FAFAFA;
+            --gray: #E8E4DE;--gray-dark: #8C8780;--gray-light: #F2F0EC;
+            --bg-card: #eceef2;
+            --bg-card-hover: #e4e6ec;
+            --bg-input: #f5f6f9;
+            --border: #dcdfe6;
+            --border: #D5D0C8;
+            --text: #1a1d23;
+            --text-secondary: #5a6070;
+            --text-dim: #8a90a2;
+            --red: #BE1E2D;--yellow: #F5C518;--blue: #1B3B6F;
+            --accent-green-bright: #00e676;
+            --accent-green-dim: rgba(0,200,83,0.08);
+            --accent-green-glow: rgba(0,200,83,0.15);
+            --accent-red: #e53935;
+            --accent-red-dim: rgba(229,57,53,0.06);
+            --accent-yellow: #f9a825;
+            --accent-yellow-dim: rgba(249,168,37,0.08);
+        }
+
+        body {
+            font-family: "SF Mono", "Fira Code", "JetBrains Mono", "Consolas", "Microsoft YaHei", monospace;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            overflow: hidden;
+            font-size: 14px;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            font-weight: 450;
+        }
+
+        /* ===== HEADER ===== */
+        .header {
+            position: fixed; top: 0; left: 0; right: 0;
+            height: 56px; padding: 0 32px;
+            display: flex; align-items: center; justify-content: space-between;
+            background: var(--white);
+            border-bottom: 3px solid var(--black);
+            z-index: 100;
+        }
+        .header-left { display: flex; align-items: center; gap: 12px; }
+        .nav-logo { width: 28px; height: 28px; background: var(--red); border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+        .nav-logo-inner { width: 14px; height: 14px; background: var(--yellow); border-radius: 50%; }
+        .header h1 {
+            font-size: 15px; font-weight: 900; letter-spacing: 2px; text-transform: uppercase;
+            color: var(--black);
+        }
+        .header .version { font-size: 11px; font-weight: 700; color: var(--gray-dark); background: var(--gray-light); padding: 3px 8px; letter-spacing: 1px; }
+        .header-right { display: flex; gap: 14px; align-items: center; }
+        .nav-links { display: flex; gap: 2px; margin-left: 12px; }
+        .nav-link {
+            padding: 7px 16px; font-size: 12px; font-weight: 700; text-decoration: none;
+            color: var(--black); letter-spacing: 1px; text-transform: uppercase;
+            border: 2px solid transparent; transition: all 0.15s; cursor: pointer;
+        }
+        .nav-link:hover { background: var(--gray-light); }
+        .nav-link.active { background: var(--black); color: var(--white); }
+        .status-indicator { display: flex; align-items: center; gap: 7px; }
+        .status-dot {
+            width: 7px; height: 7px; border-radius: 50%;
+            background: var(--accent-green);
+            box-shadow: 0 0 8px var(--accent-green-glow);
+        }
+        .status-dot.offline { background: var(--accent-red); box-shadow: 0 0 8px rgba(229,57,53,0.3); }
+        .status-text {
+            font-size: 12px; color: var(--text-dim);
+            letter-spacing: 1.5px; text-transform: uppercase;
+        }
+
+        /* ===== THREE-COLUMN LAYOUT ===== */
+        .layout {
+            display: grid;
+            grid-template-columns: 260px 1fr 460px;
+            height: 100vh; padding-top: 56px;
+        }
+
+        /* ===== LEFT PANEL ===== */
+        .panel-left {
+            background: var(--bg-panel);
+            border-right: 1px solid var(--border-dark);
+            overflow-y: auto;
+            display: flex; flex-direction: column;
+        }
+        .panel-section {
+            padding: 10px 16px;
+            border-bottom: 1px solid var(--border);
+        }
+        .param-item { margin-bottom: 8px; }
+        .param-label {
+            font-size: 12px; color: var(--text-secondary);
+            margin-bottom: 4px; display: flex; justify-content: space-between;
+            font-weight: 450;
+        }
+        .param-value { color: var(--accent-green); font-size: 13px; font-weight: 600; }
+        .param-select {
+            width: 100%; padding: 10px 12px;
+            background: var(--white); border: 2px solid var(--black);
+            color: var(--black); font-size: 13px; font-weight: 700; outline: none;
+            font-family: inherit; appearance: none; cursor: pointer;
+        }
+        .param-select:focus { border-color: var(--red); }
+        .param-select option { background: var(--white); }
+
+        /* Slider */
+        input[type="range"] { width: 100%; height: 4px; appearance: none; background: var(--gray); outline: none; cursor: pointer; }
+        input[type="range"]::-webkit-slider-thumb {
+            appearance: none; width: 16px; height: 16px; border-radius: 0;
+            background: var(--red); cursor: pointer; border: 2px solid var(--black);
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 16px; height: 16px; border-radius: 0;
+            background: var(--red); cursor: pointer; border: 2px solid var(--black);
+        }
+        input[type="range"]:disabled { opacity: 0.2; cursor: not-allowed; }
+        input[type="range"]:disabled::-webkit-slider-thumb { background: var(--gray-dark); border-color: var(--gray-dark); }
+
+        /* Toggle */
+        .toggle-row {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 8px 12px; background: var(--accent-red-dim); border: 1px solid rgba(229,57,53,0.15);
+        }
+        .toggle-label { font-size: 12px; color: var(--accent-red); letter-spacing: 1px; font-weight: 500; }
+        .toggle-switch { position: relative; width: 36px; height: 18px; cursor: pointer; }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .toggle-track { position: absolute; inset: 0; background: var(--border); border-radius: 9px; transition: background 0.2s; }
+        .toggle-switch input:checked + .toggle-track { background: var(--accent-red); box-shadow: 0 0 8px rgba(229,57,53,0.2); }
+        .toggle-thumb { position: absolute; top: 3px; left: 3px; width: 12px; height: 12px; background: white; border-radius: 50%; transition: transform 0.2s; }
+        .toggle-switch input:checked ~ .toggle-thumb { transform: translateX(18px); }
+
+        /* Buttons */
+        .start-btn-container { padding: 10px 16px; margin-top: auto; }
+        .btn-start {
+            width: 100%; padding: 10px; border: 1px solid var(--accent-green);
+            background: transparent; color: var(--accent-green);
+            font-size: 13px; font-weight: 600; cursor: pointer;
+            letter-spacing: 4px; text-transform: uppercase; font-family: inherit; transition: all 0.2s;
+        }
+        .btn-start:hover { background: var(--accent-green-dim); }
+        .btn-start:disabled { opacity: 0.2; cursor: not-allowed; }
+        .btn-start.loading { color: var(--text-dim); border-color: var(--border); }
+        .btn-reset {
+            width: 100%; padding: 8px; border: 1px solid var(--border);
+            background: transparent; color: var(--text-dim);
+            font-size: 12px; cursor: pointer; margin-top: 6px;
+            letter-spacing: 2px; text-transform: uppercase; font-family: inherit; transition: all 0.2s;
+        }
+        .btn-reset:hover { border-color: var(--text-secondary); color: var(--text-secondary); }
+        .btn-save {
+            width: 100%; padding: 8px; border: 1px solid var(--accent-green);
+            background: var(--accent-green-dim); color: var(--accent-green);
+            font-size: 12px; font-weight: 600; cursor: pointer; margin-top: 6px;
+            letter-spacing: 2px; text-transform: uppercase; font-family: inherit; transition: all 0.2s;
+            display: none;
+        }
+        .btn-save:hover { background: var(--accent-green); color: #fff; }
+        .btn-save.saved { border-color: var(--text-dim); color: var(--text-dim); background: transparent; cursor: default; }
+
+        /* ===== CENTER PANEL ===== */
+        .panel-center {
+            display: flex; flex-direction: column; overflow: hidden;
+            position: relative; background: var(--bg); border-right: 1px solid var(--border);
+        }
+        .animation-toolbar {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 8px 20px; background: var(--bg-panel); border-bottom: 1px solid var(--border);
+        }
+        .toolbar-info { font-size: 12px; color: var(--text-dim); letter-spacing: 1px; font-weight: 400; }
+        .animation-area {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative; background: var(--bg); border-right: 1px solid var(--border);
+        }
+        .animation-placeholder { display: flex; flex-direction: column; align-items: center; gap: 18px; color: var(--text-dim); }
+        .animation-placeholder .icon { font-size: 40px; opacity: 0.08; color: var(--accent-green); }
+        .animation-placeholder p { font-size: 13px; letter-spacing: 4px; text-transform: uppercase; }
+        .animation-placeholder .hint { font-size: 12px; opacity: 0.5; }
+        #animationContainer {
+            flex: 1;
+            display: none; overflow-y: auto;
+            min-height: 200px; position: relative;
+            width: 100%;
+        }
+        #animationCanvas { width: 100%; display: block; }
+
+        /* ===== RIGHT PANEL ===== */
+        .panel-right {
+            background: var(--bg-panel); overflow-y: auto; display: flex; flex-direction: column;
+        }
+
+        /* Summary banner */
+        .summary-banner {
+            padding: 16px 20px; border-bottom: 1px solid var(--border-dark);
+            min-height: 60px; display: flex; align-items: center;
+        }
+        .summary-text {
+            font-size: 14px; color: var(--text-dim); letter-spacing: 0.5px; line-height: 1.7;
+            font-weight: 450;
+        }
+        .summary-text .highlight-green { color: var(--accent-green); font-weight: 700; }
+        .summary-text .highlight-red { color: var(--accent-red); font-weight: 700; }
+        .summary-text .highlight-yellow { color: var(--accent-yellow); font-weight: 700; }
+
+        /* Progress */
+        .progress-section { padding: 12px 20px; border-bottom: 1px solid var(--border); }
+        .progress-label {
+            font-size: 11px; color: var(--text-dim); margin-bottom: 5px;
+            display: flex; justify-content: space-between; letter-spacing: 1.5px; text-transform: uppercase;
+        }
+        .progress-bar { height: 2px; background: var(--border); overflow: hidden; }
+        .progress-fill {
+            height: 100%; background: var(--accent-green); transition: width 0.05s linear;
+            box-shadow: 0 0 6px var(--accent-green-glow);
+        }
+        .progress-fill.danger { background: var(--accent-red); box-shadow: 0 0 6px rgba(229,57,53,0.2); }
+
+        /* Metrics strip */
+        .metrics-strip { display: grid; grid-template-columns: 1fr 1fr 1fr; border-bottom: 1px solid var(--border-dark); }
+        .metric-cell { padding: 12px 16px; border-right: 1px solid var(--border); }
+        .metric-cell:last-child { border-right: none; }
+        .metric-cell .label {
+            font-size: 10px; color: var(--text-dim); text-transform: uppercase;
+            letter-spacing: 2px; margin-bottom: 4px; font-weight: 400;
+        }
+        .metric-cell .value {
+            font-size: 20px; font-weight: 500; font-variant-numeric: tabular-nums; color: var(--text);
+        }
+        .metric-cell .unit { font-size: 11px; color: var(--text-dim); margin-left: 3px; font-weight: 400; }
+
+        /* ===== ROAD TABLE — CRITICAL: robust layout ===== */
+        .road-table-section { flex: 1; overflow-y: auto; border-top: 1px solid var(--border); }
+
+        .road-table-header {
+            display: flex;
+            padding: 12px 18px;
+            font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 2px;
+            border-bottom: 1.5px solid var(--border-dark);
+            background: var(--bg); position: sticky; top: 0; z-index: 10;
+            font-weight: 400;
+        }
+        .road-table-header .th-name { flex: 1; min-width: 120px; }
+        .road-table-header .th-speed { width: 100px; min-width: 80px; text-align: right; }
+        .road-table-header .th-status { width: 100px; min-width: 80px; text-align: center; }
+        .road-table-header .th-energy { width: 100px; min-width: 80px; text-align: right; }
+
+        .road-row {
+            display: flex;
+            padding: 12px 18px;
+            font-size: 14px;
+            border-bottom: 1px solid var(--border);
+            align-items: center;
+            transition: background 0.1s;
+        }
+        .road-row:hover { background: var(--bg-card); }
+        .road-row.row-safe { border-left: 3px solid var(--accent-green); }
+        .road-row.row-collision-hold { border-left: 3px solid var(--accent-yellow); }
+        .road-row.row-collision-fail { border-left: 3px solid var(--accent-red); }
+
+        /* Column widths MUST match header */
+        .road-row .td-name { flex: 1; min-width: 120px; }
+        .road-row .td-speed { width: 100px; min-width: 80px; text-align: right; }
+        .road-row .td-status { width: 100px; min-width: 80px; text-align: center; }
+        .road-row .td-energy { width: 100px; min-width: 80px; text-align: right; }
+
+        .rr-name {
+            font-size: 14px; color: var(--text); line-height: 1.4;
+            white-space: nowrap; overflow: visible; font-weight: 500;
+        }
+        .rr-adhesion { font-size: 12px; color: var(--text-dim); margin-top: 2px; font-weight: 400; }
+
+        .rr-speed {
+            font-size: 20px; font-variant-numeric: tabular-nums;
+            color: var(--accent-green); font-weight: 500; text-align: right;
+            letter-spacing: -0.5px;
+        }
+        .rr-speed-unit { font-size: 11px; color: var(--text-dim); margin-left: 3px; font-weight: 400; }
+
+        .rr-status { font-size: 13px; text-align: center; padding: 3px 0; letter-spacing: 0.5px; font-weight: 500; }
+        .rr-status.st-driving { color: var(--text-secondary); }
+        .rr-status.st-braking { color: var(--accent-yellow); }
+        .rr-status.st-stopped { color: var(--accent-green); }
+        .rr-status.st-collision-hold { color: var(--accent-yellow); }
+        .rr-status.st-collision-fail { color: var(--accent-red); }
+
+        .rr-energy {
+            font-size: 13px; text-align: right;
+            font-variant-numeric: tabular-nums; color: var(--text-dim); font-weight: 450;
+        }
+        .rr-energy.active { color: var(--accent-red); font-weight: 600; }
+
+        /* ===== ERROR TOAST ===== */
+        .error-toast {
+            position: fixed; top: 58px; left: 50%; transform: translateX(-50%);
+            background: var(--accent-red); color: #fff; padding: 12px 28px;
+            font-size: 13px; font-family: inherit; z-index: 9999;
+            display: none; letter-spacing: 0.5px; font-weight: 500;
+            box-shadow: 0 2px 12px rgba(229,57,53,0.2);
+        }
+        .error-toast.visible { display: block; animation: fadeIn 0.2s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateX(-50%) translateY(-4px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+
+        /* ===== SCROLLBAR ===== */
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: var(--bg); }
+        ::-webkit-scrollbar-thumb { background: var(--border-dark); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+
+        /* ===== DEBUG SELF-TEST (hidden, shown in console) ===== */
+        #tableDebugInfo { display: none; }
+
+        @media (max-width: 1200px) {
+            .layout { grid-template-columns: 220px 1fr 380px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="error-toast" id="errorToast"></div>
+
+<header class="header">
+    <div class="header-left">
+        <div class="nav-logo"><div class="nav-logo-inner"></div></div>
+        <h1>护栏安全设计系统</h1>
+        <span class="version">v4.1</span>
+        <div class="nav-links">
+            <a class="nav-link" href="/">首页</a>
+            <a class="nav-link" href="/map">气候地图</a>
+            <a class="nav-link active" href="/simulator">碰撞模拟</a>
+            <a class="nav-link" href="/history">模拟记录</a>
+            <a class="nav-link" href="/chat">AI 助手</a>
+        </div>
+    </div>
+    <div class="header-right">
+        <div class="status-indicator">
+            <div class="status-dot" id="statusDot"></div>
+            <span class="status-text" id="statusText">就绪</span>
+        </div>
+    </div>
+</header>
+
+<div class="layout">
+    <!-- ====== LEFT PANEL ====== -->
+    <div class="panel-left">
+        <div class="panel-section">
+            <div class="param-item">
+                <div class="param-label"><span>车型预设</span></div>
+                <select class="param-select" id="vehiclePreset">
+                    <option value="custom">自定义</option>
+                </select>
+            </div>
+            <div class="param-item">
+                <div class="param-label">
+                    <span>车辆质量</span>
+                    <span class="param-value"><span id="massVal">1.5</span> t</span>
+                </div>
+                <input type="range" id="massSlider" min="0.5" max="30" step="0.1" value="1.5">
+            </div>
+            <div class="param-item">
+                <div class="param-label">
+                    <span>初始速度</span>
+                    <span class="param-value"><span id="speedVal">80</span> km/h</span>
+                </div>
+                <input type="range" id="speedSlider" min="10" max="200" step="5" value="80">
+            </div>
+        </div>
+
+        <div class="panel-section">
+            <div class="param-item">
+                <div class="param-label">
+                    <span>直道长度</span>
+                    <span class="param-value"><span id="roadLenVal">80</span> m</span>
+                </div>
+                <input type="range" id="roadLenSlider" min="10" max="500" step="5" value="80">
+            </div>
+            <div class="param-item">
+                <div class="param-label">
+                    <span>坡度</span>
+                    <span class="param-value"><span id="slopeVal">0.0</span>%</span>
+                </div>
+                <input type="range" id="slopeSlider" min="-10" max="10" step="0.5" value="0">
+            </div>
+            <div class="param-item">
+                <div class="param-label">
+                    <span>驾驶员刹车反应时间</span>
+                    <span class="param-value"><span id="reactionVal">1.2</span> s</span>
+                </div>
+                <input type="range" id="reactionSlider" min="0.5" max="3.0" step="0.1" value="1.2">
+            </div>
+        </div>
+
+        <div class="panel-section">
+            <div class="toggle-row">
+                <span class="toggle-label">刹车失灵</span>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="brakeFailureToggle">
+                    <div class="toggle-track"></div>
+                    <div class="toggle-thumb"></div>
+                </label>
+            </div>
+        </div>
+
+        <!-- 地点 & 月份 -->
+        <div class="panel-section" id="locationSection">
+            <div style="font-size:10px;font-weight:900;color:var(--gray-dark);letter-spacing:3px;text-transform:uppercase;margin-bottom:10px;">地点信息</div>
+            <div class="param-item">
+                <div class="param-label">
+                    <span>省份</span>
+                    <span class="param-value" id="locProvince" style="color:var(--blue);">--</span>
+                </div>
+            </div>
+            <div class="param-item">
+                <div class="param-label">
+                    <span>地点</span>
+                    <span class="param-value" id="locStation" style="color:var(--red);">--</span>
+                </div>
+            </div>
+            <div class="param-item">
+                <div class="param-label"><span>分析月份</span></div>
+                <select class="param-select" id="monthSelect" onchange="updateMonthData()">
+                    <option value="0">1月</option><option value="1">2月</option><option value="2">3月</option>
+                    <option value="3">4月</option><option value="4">5月</option><option value="5">6月</option>
+                    <option value="6">7月</option><option value="7">8月</option><option value="8">9月</option>
+                    <option value="9">10月</option><option value="10">11月</option><option value="11">12月</option>
+                </select>
+            </div>
+            <div id="climateInfo" style="display:none;margin-top:8px;padding:10px 12px;background:var(--gray-light);border:2px solid var(--black);">
+                <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+                    <span style="font-size:11px;color:var(--gray-dark);font-weight:700;letter-spacing:1px;">气温</span>
+                    <span style="font-size:14px;font-weight:900;" id="monthTemp">--</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;">
+                    <span style="font-size:11px;color:var(--gray-dark);font-weight:700;letter-spacing:1px;">降水</span>
+                    <span style="font-size:14px;font-weight:900;" id="monthPrecip">--</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel-section">
+            <div class="param-item">
+                <div class="param-label"><span>护栏等级</span></div>
+                <select class="param-select" id="barrierLevel">
+                    <option value="B">B级 — 70 kJ 防撞等级</option>
+                    <option value="A" selected>A级 — 160 kJ 防撞等级</option>
+                    <option value="SB">SB级 — 280 kJ 防撞等级</option>
+                    <option value="SA">SA级 — 400 kJ 防撞等级</option>
+                    <option value="SS">SS级 — 520 kJ 防撞等级</option>
+                    <option value="HB">HB级 — 640 kJ 防撞等级</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="start-btn-container">
+            <button class="btn-start" id="btnStart">开始模拟</button>
+            <button class="btn-reset" id="btnReset" style="display:none;">重置</button>
+            <button class="btn-save" id="btnSave">保存记录</button>
+        </div>
+    </div>
+
+    <!-- ====== CENTER PANEL ====== -->
+    <div class="panel-center">
+        <div class="animation-toolbar">
+            <div class="toolbar-info" id="toolbarInfo">车辆撞击护栏模拟</div>
+        </div>
+        <div class="animation-area">
+            <div class="animation-placeholder" id="animPlaceholder">
+                <div class="icon">◆</div>
+                <p>Simulation</p>
+                <span class="hint">设置参数后点击开始模拟</span>
+            </div>
+            <div id="animationContainer">
+                <canvas id="animationCanvas"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== RIGHT PANEL ====== -->
+    <div class="panel-right">
+        <div class="summary-banner" id="summaryBanner">
+            <div class="summary-text" id="summaryText">等待模拟数据</div>
+        </div>
+        <div class="progress-section">
+            <div class="progress-label">
+                <span>已行驶距离</span>
+                <span id="positionText">0.0 / 0 m</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="positionFill" style="width:0%"></div>
+            </div>
+        </div>
+        <div class="metrics-strip">
+            <div class="metric-cell">
+                <div class="label">减速度</div>
+                <div class="value" id="decelVal">0.00<span class="unit">m/s²</span></div>
+            </div>
+            <div class="metric-cell">
+                <div class="label">用时</div>
+                <div class="value" id="timeVal">0.00<span class="unit">s</span></div>
+            </div>
+            <div class="metric-cell">
+                <div class="label">停车距离</div>
+                <div class="value" id="stopDistVal">—<span class="unit">m</span></div>
+            </div>
+        </div>
+        <div class="road-table-section" id="roadTableSection">
+            <div class="road-table-header">
+                <div class="th-name">路面条件</div>
+                <div class="th-speed">速度</div>
+                <div class="th-status">状态</div>
+                <div class="th-energy">碰撞能量</div>
+            </div>
+            <div id="roadTableBody"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+// ============================================================
+// v4.1 — Table Fix + Layout
+// ============================================================
+const _V = '4.2';
+
+const API = window.location.origin;
+let simData = null;
+let roadKeys = [];
+let animTimer = null;
+let allAnimTimers = [];
+let currentFrameIndex = 0;
+let currentClimate = null; // 当前站点/省份气候数据
+let currentProvince = '';
+let currentLocation = '';
+const $ = id => document.getElementById(id);
+
+// Elements
+const massSlider = $('massSlider'), speedSlider = $('speedSlider'), roadLenSlider = $('roadLenSlider');
+const slopeSlider = $('slopeSlider'), reactionSlider = $('reactionSlider');
+const vehiclePreset = $('vehiclePreset'), barrierLevel = $('barrierLevel');
+const brakeFailureToggle = $('brakeFailureToggle');
+const massVal = $('massVal'), speedVal = $('speedVal'), roadLenVal = $('roadLenVal');
+const slopeVal = $('slopeVal'), reactionVal = $('reactionVal');
+const btnStart = $('btnStart'), btnReset = $('btnReset'), btnSave = $('btnSave');
+let lastSimBody = null; // 保存模拟参数用于记录
+const positionText = $('positionText'), positionFill = $('positionFill');
+const decelVal = $('decelVal'), timeVal = $('timeVal'), stopDistVal = $('stopDistVal');
+const summaryText = $('summaryText'), roadTableBody = $('roadTableBody');
+const animPlaceholder = $('animPlaceholder'), animationContainer = $('animationContainer');
+const animationCanvas = $('animationCanvas'), toolbarInfo = $('toolbarInfo');
+const statusDot = $('statusDot'), statusText = $('statusText'), errorToast = $('errorToast');
+
+
+function showError(msg) {
+    errorToast.textContent = msg;
+    errorToast.classList.add('visible');
+    setTimeout(() => errorToast.classList.remove('visible'), 5000);
+}
+function safeJsonParse(text) {
+    try { return JSON.parse(text); }
+    catch (e) { showError('数据解析错误: ' + e.message); return null; }
+}
+
+
+async function init() {
+    try {
+        // 解析URL参数（从省份页面跳转过来）
+        const urlParams = new URLSearchParams(window.location.search);
+        currentProvince = urlParams.get('province') || '';
+        currentLocation = urlParams.get('location') || '';
+        const stationIdx = urlParams.get('station_idx');
+
+        // 设置月份为当前月
+        $('monthSelect').value = new Date().getMonth();
+
+        // 加载基础数据
+        const resp = await fetch(API + '/api/data');
+        const text = await resp.text();
+        const json = safeJsonParse(text);
+        if (!json || !json.success) return;
+        const data = json.data;
+        vehiclePreset.innerHTML = '<option value="custom">自定义</option>';
+        data.vehicle_presets.forEach(vp => {
+            const opt = document.createElement('option');
+            opt.value = vp.key;
+            opt.textContent = vp.name + ' (' + vp.mass + 't)';
+            vehiclePreset.appendChild(opt);
+        });
+        vehiclePreset.value = 'small_car';
+        massSlider.value = 1.5;
+        massVal.textContent = '1.5';
+        statusDot.className = 'status-dot';
+        statusText.textContent = '就绪';
+
+        // 加载地点气候数据
+        if (currentProvince) {
+            $('locProvince').textContent = currentProvince;
+            if (currentLocation) {
+                $('locStation').textContent = currentLocation;
+                toolbarInfo.textContent = currentProvince + ' · ' + currentLocation;
+            } else {
+                toolbarInfo.textContent = currentProvince;
+            }
+            await loadClimateForLocation(stationIdx);
+            updateMonthData();
+        }
+    } catch (err) {
+        statusDot.className = 'status-dot offline';
+        statusText.textContent = '离线';
+        showError('无法连接到后端服务: ' + err.message);
+    }
+}
+
+async function loadClimateForLocation(stationIdx) {
+    try {
+        const resp = await fetch(API + '/api/climate');
+        const json = await resp.json();
+        if (!json.success || !json.data || !json.data.provinces) return;
+        const provData = json.data.provinces[currentProvince];
+        if (!provData || !provData.stations) return;
+
+        if (stationIdx !== null && stationIdx !== '' && provData.stations[stationIdx]) {
+            currentClimate = provData.stations[stationIdx];
+        } else {
+            // 尝试匹配站点名称
+            const found = provData.stations.find(s => s.name === currentLocation);
+            currentClimate = found || null;
+        }
+    } catch(e) {}
+}
+
+function updateMonthData() {
+    if (!currentClimate) return;
+    const m = parseInt($('monthSelect').value);
+    const temp = currentClimate.monthly_temp[m];
+    const precip = currentClimate.monthly_precip[m];
+    $('monthTemp').textContent = temp.toFixed(1) + '°C';
+    $('monthPrecip').textContent = precip + ' mm';
+    $('climateInfo').style.display = 'block';
+}
+
+
+massSlider.addEventListener('input', () => { massVal.textContent = parseFloat(massSlider.value).toFixed(1); });
+speedSlider.addEventListener('input', () => { speedVal.textContent = speedSlider.value; });
+roadLenSlider.addEventListener('input', () => { roadLenVal.textContent = roadLenSlider.value; });
+slopeSlider.addEventListener('input', () => { slopeVal.textContent = parseFloat(slopeSlider.value).toFixed(1); });
+reactionSlider.addEventListener('input', () => { reactionVal.textContent = parseFloat(reactionSlider.value).toFixed(1); });
+brakeFailureToggle.addEventListener('change', () => { reactionSlider.disabled = brakeFailureToggle.checked; });
+vehiclePreset.addEventListener('change', () => {
+    const val = vehiclePreset.value;
+    if (val === 'custom') return;
+    const presets = vehiclePreset.querySelectorAll('option');
+    for (const opt of presets) {
+        if (opt.value === val) {
+            const match = opt.textContent.match(/\((\S+)t\)/);
+            if (match) { massSlider.value = parseFloat(match[1]); massVal.textContent = parseFloat(match[1]).toFixed(1); }
+            break;
+        }
+    }
+});
+
+
+btnStart.addEventListener('click', startSimulation);
+btnReset.addEventListener('click', resetSimulation);
+btnSave.addEventListener('click', saveRecord);
+
+async function startSimulation() {
+    btnStart.disabled = true;
+    btnStart.classList.add('loading');
+    btnStart.textContent = '计算中...';
+    statusText.textContent = '模拟中';
+    errorToast.classList.remove('visible');
+
+    const body = {
+        vehicle_mass: parseFloat(massSlider.value),
+        initial_speed: parseFloat(speedSlider.value),
+        brake_reaction_time: parseFloat(reactionSlider.value),
+        road_length: parseFloat(roadLenSlider.value),
+        slope_grade: parseFloat(slopeSlider.value),
+        barrier_level: barrierLevel.value,
+        brake_failure: brakeFailureToggle.checked,
+    };
+    lastSimBody = { ...body }; // 保存参数
+
+    try {
+        const resp = await fetch(API + '/api/simulate', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+        });
+        const text = await resp.text();
+        const json = safeJsonParse(text);
+        if (!json) { resetBtn(); return; }
+        if (!json.success) { showError('模拟失败: ' + (json.error || '未知错误')); resetBtn(); return; }
+
+        simData = json.data;
+        roadKeys = Object.keys(simData.results_by_road);
+
+
+
+        renderSummary();
+        renderRoadTable();
+
+        // IMMEDIATE self-test: verify DOM structure
+        setTimeout(() => {
+            runTableSelfTest();
+        }, 100);
+
+        btnStart.style.display = 'none';
+        btnReset.style.display = 'block';
+        btnSave.style.display = 'block';
+        btnSave.classList.remove('saved');
+        btnSave.textContent = '保存记录';
+        playAllRoadsAnimation();
+        statusText.textContent = '运行中';
+    } catch (err) {
+        showError('请求失败: ' + err.message);
+        resetBtn();
+    }
+}
+
+function resetBtn() {
+    btnStart.disabled = false;
+    btnStart.classList.remove('loading');
+    btnStart.textContent = '开始模拟';
+}
+
+function saveRecord() {
+    if (!lastSimBody || !simData) return;
+    btnSave.disabled = true;
+    btnSave.textContent = '保存中...';
+    const saveBody = {
+        ...lastSimBody,
+        results: simData,
+        province: currentProvince,
+        location: currentLocation,
+    };
+    fetch(API + '/api/history', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(saveBody),
+    })
+    .then(r => r.json())
+    .then(json => {
+        if (json.success) {
+            btnSave.textContent = '已保存';
+            btnSave.classList.add('saved');
+        } else {
+            btnSave.textContent = '保存记录';
+            showError('保存失败: ' + (json.error || ''));
+        }
+        btnSave.disabled = false;
+    })
+    .catch(err => {
+        btnSave.textContent = '保存记录';
+        showError('保存失败: ' + err.message);
+        btnSave.disabled = false;
+    });
+}
+
+function resetSimulation() {
+    stopAllAnimation();
+    simData = null; roadKeys = [];
+    btnStart.style.display = 'block'; resetBtn();
+    btnReset.style.display = 'none';
+    btnSave.style.display = 'none';
+    btnSave.classList.remove('saved');
+    animPlaceholder.style.display = 'flex';
+    animationContainer.style.display = 'none';
+    positionText.textContent = '0.0 / 0 m';
+    positionFill.style.width = '0%'; positionFill.classList.remove('danger');
+    decelVal.innerHTML = '0.00<span class="unit">m/s²</span>';
+    timeVal.innerHTML = '0.00<span class="unit">s</span>';
+    stopDistVal.innerHTML = '—<span class="unit">m</span>';
+    summaryText.textContent = '等待模拟数据';
+    summaryText.className = 'summary-text';
+    roadTableBody.innerHTML = '';
+    toolbarInfo.textContent = '车辆撞击护栏模拟';
+    statusText.textContent = '就绪';
+    errorToast.classList.remove('visible');
+}
+
+// ============================================================
+// Table Self-Test
+// ============================================================
+function runTableSelfTest() {
+    const rows = roadTableBody.querySelectorAll('.road-row');
+
+    let failures = [];
+    rows.forEach((row, idx) => {
+        const key = row.dataset.roadKey || 'unknown-' + idx;
+        const tdName = row.querySelector('.td-name');
+        const tdSpeed = row.querySelector('.td-speed');
+        const tdStatus = row.querySelector('.td-status');
+        const tdEnergy = row.querySelector('.td-energy');
+
+        const nameEl = row.querySelector('.rr-name');
+        const adhesionEl = row.querySelector('.rr-adhesion');
+        const speedEl = row.querySelector('.rr-speed');
+        const statusEl = row.querySelector('.rr-status');
+        const energyEl = row.querySelector('.rr-energy');
+
+        const report = {
+            index: idx,
+            roadKey: key,
+            has_tdName: !!tdName,
+            has_tdSpeed: !!tdSpeed,
+            has_tdStatus: !!tdStatus,
+            has_tdEnergy: !!tdEnergy,
+            name_text: nameEl ? nameEl.textContent.trim() : 'MISSING',
+            adhesion_text: adhesionEl ? adhesionEl.textContent.trim() : 'MISSING',
+            speed_text: speedEl ? speedEl.textContent.trim() : 'MISSING',
+            status_text: statusEl ? statusEl.textContent.trim() : 'MISSING',
+            energy_text: energyEl ? energyEl.textContent.trim() : 'MISSING',
+            tdName_width: tdName ? tdName.offsetWidth : 0,
+            tdSpeed_width: tdSpeed ? tdSpeed.offsetWidth : 0,
+            tdStatus_width: tdStatus ? tdStatus.offsetWidth : 0,
+            tdEnergy_width: tdEnergy ? tdEnergy.offsetWidth : 0,
+            row_width: row.offsetWidth,
+        };
+
+        if (!tdName || !tdSpeed || !tdStatus || !tdEnergy) {
+            failures.push(report);
+        }
+        if (!nameEl || !speedEl || !statusEl || !energyEl) {
+            failures.push(report);
+        }
+
+
+    });
+
+    if (failures.length > 0) {
+
+    }
+}
+
+
+function renderSummary() {
+    if (!simData) return;
+    const s = simData.summary;
+    const total = s.total_road_types, safe = s.safe_count;
+    const hitHold = s.hit_count - s.barrier_fail_count, hitFail = s.barrier_fail_count;
+    let html = '';
+    if (hitFail === 0 && safe === total) {
+        html = '<span class="highlight-green">在全部 ' + total + ' 种路面条件下，车辆均可在护栏前安全停止。</span>';
+    } else if (hitFail === 0) {
+        html = '在 ' + total + ' 种路面中，<span class="highlight-green">' + safe + ' 种</span>安全停止，<span class="highlight-yellow">' + hitHold + ' 种</span>撞击但栏杆成功阻拦。<br><span class="highlight-green">在所有情况下，栏杆均可成功阻拦。</span>';
+    } else if (hitFail === total) {
+        html = '<span class="highlight-red">在全部 ' + total + ' 种路面条件下，栏杆均无法成功阻拦。</span>';
+    } else if (safe === 0) {
+        html = '在 ' + total + ' 种路面中，<span class="highlight-yellow">' + hitHold + ' 种</span>栏杆阻拦成功，<span class="highlight-red">' + hitFail + ' 种</span>栏杆无法阻拦。';
+    } else {
+        html = '在 ' + total + ' 种路面中，<span class="highlight-green">' + safe + ' 种</span>安全停止，<span class="highlight-yellow">' + hitHold + ' 种</span>撞击但阻拦成功，<span class="highlight-red">' + hitFail + ' 种</span>撞击且栏杆阻拦失败。';
+    }
+    summaryText.innerHTML = html;
+}
+
+
+function renderRoadTable() {
+    if (!simData) return;
+    roadTableBody.innerHTML = '';
+
+    const items = simData.summary.road_results_summary;
+
+
+    items.forEach((r, idx) => {
+        const row = document.createElement('div');
+        row.className = 'road-row';
+        row.dataset.roadKey = r.key;
+
+        // Set row class based on final result
+        if (!r.hits_barrier) {
+            row.classList.add('row-safe');
+        } else if (r.barrier_can_hold) {
+            row.classList.add('row-collision-hold');
+        } else {
+            row.classList.add('row-collision-fail');
+        }
+
+        // Column 1: Road name + adhesion  (flex: 1, min-width: 120px)
+        const tdName = document.createElement('div');
+        tdName.className = 'td-name';
+        const nameDiv = document.createElement('div');
+        nameDiv.className = 'rr-name';
+        nameDiv.textContent = r.name || r.key;
+        const adhesionDiv = document.createElement('div');
+        adhesionDiv.className = 'rr-adhesion';
+        adhesionDiv.textContent = r.adhesion + ' 摩擦系数';
+        tdName.appendChild(nameDiv);
+        tdName.appendChild(adhesionDiv);
+
+        // Column 2: Speed  (width: 100px, min-width: 80px)
+        const tdSpeed = document.createElement('div');
+        tdSpeed.className = 'td-speed';
+        const speedSpan = document.createElement('span');
+        speedSpan.className = 'rr-speed';
+        speedSpan.dataset.roadKey = r.key;
+        speedSpan.textContent = '0.0';
+        const speedUnit = document.createElement('span');
+        speedUnit.className = 'rr-speed-unit';
+        speedUnit.textContent = 'km/h';
+        tdSpeed.appendChild(speedSpan);
+        tdSpeed.appendChild(speedUnit);
+
+        // Column 3: Status  (width: 100px, min-width: 80px)
+        const tdStatus = document.createElement('div');
+        tdStatus.className = 'td-status';
+        const statusSpan = document.createElement('span');
+        statusSpan.className = 'rr-status st-driving';
+        statusSpan.dataset.statusKey = r.key;
+        statusSpan.textContent = '行驶中';
+        tdStatus.appendChild(statusSpan);
+
+        // Column 4: Energy  (width: 100px, min-width: 80px)
+        const tdEnergy = document.createElement('div');
+        tdEnergy.className = 'td-energy';
+        const energySpan = document.createElement('span');
+        energySpan.className = 'rr-energy';
+        energySpan.dataset.energyKey = r.key;
+        energySpan.textContent = '—';
+        tdEnergy.appendChild(energySpan);
+
+        row.appendChild(tdName);
+        row.appendChild(tdSpeed);
+        row.appendChild(tdStatus);
+        row.appendChild(tdEnergy);
+        roadTableBody.appendChild(row);
+
+    });
+}
+
+// ALL ROADS SYNCED ANIMATION — 8 lanes
+function stopAllAnimation() {
+    allAnimTimers.forEach(t => clearTimeout(t));
+    allAnimTimers = [];
+    if (animTimer) { clearTimeout(animTimer); animTimer = null; }
+}
+
+function playAllRoadsAnimation() {
+    stopAllAnimation();
+    if (!simData || roadKeys.length === 0) return;
+    const p = simData.input_params;
+    const roadLength = p.road_length;
+
+    // 找最长帧数
+    let maxFrames = 0;
+    roadKeys.forEach(key => {
+        const f = simData.results_by_road[key].frames.length;
+        if (f > maxFrames) maxFrames = f;
+    });
+
+    // 也启动 canvas 多车道绘制
+    animPlaceholder.style.display = 'none';
+    animationContainer.style.display = 'block';
+
+    const LANE_H = 72;          // 每条车道高度 px
+    const CANVAS_W_REF = 700;   // 参考宽度（实际用容器宽度）
+    const totalH = LANE_H * roadKeys.length;
+
+    requestAnimationFrame(() => {
+        const cw = animationContainer.clientWidth || 700;
+        animationCanvas.width = cw;
+        animationCanvas.height = totalH;
+        animationCanvas.style.height = totalH + 'px';
+
+        const targetDurationMs = 3500;
+        const frameInterval = targetDurationMs / maxFrames;
+        let frameIdx = 0;
+        const ctx = animationCanvas.getContext('2d');
+
+        // 更新停车距离：取最长路面
+        let tdMax = 0;
+        roadKeys.forEach(key => {
+            const td = simData.results_by_road[key].total_stopping_distance;
+            if (td > tdMax) tdMax = td;
+        });
+        stopDistVal.innerHTML = (tdMax >= 99999 ? '∞' : tdMax.toFixed(1)) + '<span class="unit">m</span>';
+
+        function drawAllLanes() {
+            const W = animationCanvas.width;
+            const H = animationCanvas.height;
+            ctx.clearRect(0, 0, W, H);
+
+            // 整体背景
+            ctx.fillStyle = '#dde0e8';
+            ctx.fillRect(0, 0, W, H);
+
+            roadKeys.forEach((key, laneIdx) => {
+                const rr = simData.results_by_road[key];
+                const frames = rr.frames;
+                const curFrame = frameIdx < frames.length ? frames[frameIdx] : frames[frames.length - 1];
+                const laneY = laneIdx * LANE_H;
+                drawLane(ctx, W, LANE_H, laneY, curFrame, roadLength, rr, p, key, laneIdx);
+            });
+
+            // 同步右侧表格
+            roadKeys.forEach(key => {
+                const rr = simData.results_by_road[key];
+                const frames = rr.frames;
+                const f = frameIdx < frames.length ? frames[frameIdx] : frames[frames.length - 1];
+                updateRoadSpeed(key, f.speed_kmh);
+                updateRoadStatus(key, f, rr);
+                if (f.is_collision || f.is_stopped || frameIdx >= frames.length) updateRoadEnergy(key, rr);
+            });
+
+            // 同步顶部数据：用路面最多帧的那条
+            let longestKey = roadKeys[0], longestLen = 0;
+            roadKeys.forEach(k => { if (simData.results_by_road[k].frames.length > longestLen) { longestLen = simData.results_by_road[k].frames.length; longestKey = k; } });
+            const mainFrames = simData.results_by_road[longestKey].frames;
+            const mainFrame = frameIdx < mainFrames.length ? mainFrames[frameIdx] : mainFrames[mainFrames.length - 1];
+            updateLiveData(mainFrame, roadLength, simData.results_by_road[longestKey]);
+
+            if (frameIdx < maxFrames) {
+                frameIdx++;
+                animTimer = setTimeout(drawAllLanes, frameInterval);
+            } else {
+                setTimeout(runTableSelfTest, 200);
+            }
+        }
+        drawAllLanes();
+    });
+}
+
+// Single lane draw
+function drawLane(ctx, W, LH, laneY, frame, roadLength, roadResult, params, roadKey, laneIdx) {
+    const margin = 8;
+    const nameAreaW = 108;  // 左侧路面名称区域宽度
+    const barrierMargin = 10;
+    const drawAreaL = margin + nameAreaW;
+    const drawAreaR = W - barrierMargin - 4;
+    const drawW = drawAreaR - drawAreaL;
+    const laneCenter = laneY + LH / 2;
+
+    // 隔行底色
+    ctx.fillStyle = laneIdx % 2 === 0 ? '#dde0e8' : '#d5d9e2';
+    ctx.fillRect(0, laneY, W, LH);
+
+    // 左侧路面名称区域
+    ctx.fillStyle = 'rgba(0,0,0,0.06)';
+    ctx.fillRect(0, laneY, nameAreaW, LH);
+
+    // 路面名称
+    const road = roadResult;
+    const roadName = road.road_name || roadKey;
+    ctx.fillStyle = 'rgba(0,0,0,0.55)';
+    ctx.font = '600 10px monospace';
+    ctx.textAlign = 'center';
+    // 名称较长时截断换行
+    const lines = splitText(roadName, 6);
+    lines.forEach((line, li) => {
+        ctx.fillText(line, nameAreaW / 2, laneCenter - (lines.length - 1) * 6 + li * 13);
+    });
+    // 摩擦系数
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.font = '400 9px monospace';
+    ctx.fillText('μ=' + road.adhesion, nameAreaW / 2, laneCenter + (lines.length) * 7);
+
+    // 分隔线（名称区右边）
+    ctx.strokeStyle = 'rgba(0,0,0,0.12)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(nameAreaW, laneY); ctx.lineTo(nameAreaW, laneY + LH); ctx.stroke();
+
+    // 车道路面
+    const laneTop = laneY + LH * 0.25;
+    const laneBot = laneY + LH * 0.75;
+    const laneH = laneBot - laneTop;
+    ctx.fillStyle = '#c8ccd5';
+    ctx.fillRect(drawAreaL, laneTop, drawW, laneH);
+    ctx.strokeStyle = 'rgba(0,0,0,0.15)'; ctx.lineWidth = 0.5;
+    ctx.strokeRect(drawAreaL, laneTop, drawW, laneH);
+
+    // 虚线中心线
+    ctx.setLineDash([8,6]); ctx.strokeStyle = 'rgba(0,0,0,0.08)'; ctx.lineWidth = 0.5;
+    ctx.beginPath(); ctx.moveTo(drawAreaL, laneCenter); ctx.lineTo(drawAreaR, laneCenter); ctx.stroke();
+    ctx.setLineDash([]);
+
+    // 距离刻度（简洁）
+    ctx.fillStyle = 'rgba(0,0,0,0.18)'; ctx.font = '400 8px monospace'; ctx.textAlign = 'center';
+    const ticks = 4;
+    for (let i = 0; i <= ticks; i++) {
+        const dist = (roadLength / ticks) * i;
+        const tx = drawAreaL + (dist / roadLength) * drawW;
+        ctx.fillText(Math.round(dist), tx, laneBot + 10);
+    }
+
+    // ---- 护栏 ----
+    const barrierColor = roadResult.hits_barrier
+        ? (roadResult.barrier_can_hold ? 'rgba(249,168,37,0.95)' : 'rgba(229,57,53,0.95)')
+        : 'rgba(0,200,83,0.75)';
+    ctx.strokeStyle = barrierColor; ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(drawAreaR, laneTop - 6);
+    ctx.lineTo(drawAreaR, laneBot + 6);
+    ctx.stroke();
+    // 护栏发光
+    if (roadResult.hits_barrier && frame.is_collision) {
+        const glow = ctx.createRadialGradient(drawAreaR, laneCenter, 0, drawAreaR, laneCenter, 18);
+        const gc = roadResult.barrier_can_hold ? 'rgba(249,168,37,' : 'rgba(229,57,53,';
+        glow.addColorStop(0, gc + '0.15)');
+        glow.addColorStop(1, gc + '0)');
+        ctx.fillStyle = glow;
+        ctx.beginPath(); ctx.arc(drawAreaR, laneCenter, 18, 0, Math.PI * 2); ctx.fill();
+    }
+
+    // ---- 车辆 ----
+    const carFrac = Math.min(frame.position / roadLength, 1.0);
+    let carCenterX = drawAreaL + carFrac * drawW;
+    if (frame.is_collision) carCenterX = drawAreaR - (params.vehicle_mass >= 8 ? 30 : 22);
+    const carCenterY = laneCenter;
+
+    const isTruck = params.vehicle_mass >= 8;
+    drawVehicle(ctx, carCenterX, carCenterY, frame, params, isTruck);
+
+    // 状态标签（小字）
+    ctx.textAlign = 'left';
+    if (frame.is_stopped) {
+        ctx.fillStyle = 'rgba(0,200,83,0.8)'; ctx.font = '500 8px monospace';
+        ctx.fillText('STOP', carCenterX + (isTruck ? 32 : 26), carCenterY - (isTruck ? 14 : 12));
+    } else if (frame.is_collision) {
+        const cc = roadResult.barrier_can_hold ? 'rgba(249,168,37,0.9)' : 'rgba(229,57,53,0.9)';
+        ctx.fillStyle = cc; ctx.font = '500 8px monospace';
+        ctx.fillText(roadResult.barrier_can_hold ? 'HELD' : 'FAIL', drawAreaR - 28, laneTop + 10);
+    }
+
+    // 速度标签（右上角小字）
+    ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.font = '400 9px monospace'; ctx.textAlign = 'right';
+    ctx.fillText(frame.speed_kmh.toFixed(0) + ' km/h', drawAreaR - 6, laneTop + 10);
+
+    // 底部分割线
+    ctx.strokeStyle = 'rgba(0,0,0,0.1)'; ctx.lineWidth = 0.5;
+    ctx.beginPath(); ctx.moveTo(0, laneY + LH); ctx.lineTo(W, laneY + LH); ctx.stroke();
+}
+
+// 文字简单换行辅助
+function splitText(text, maxCharsPerLine) {
+    const lines = [];
+    for (let i = 0; i < text.length; i += maxCharsPerLine) {
+        lines.push(text.slice(i, i + maxCharsPerLine));
+    }
+    return lines;
+}
+
+// Vehicle draw: car or truck
+function drawVehicle(ctx, cx, cy, frame, params, isTruck) {
+    if (isTruck) {
+        drawTruck(ctx, cx, cy, frame, params);
+    } else {
+        drawCar(ctx, cx, cy, frame, params);
+    }
+}
+
+// ---- 小轿车（原精致模型，缩小版） ----
+function drawCar(ctx, cx, cy, frame, params) {
+    const carW = 40, carH = 17;
+    const carColor = params.brake_failure ? '#e53935' : (frame.is_braking ? '#00c853' : '#00e676');
+    const carDark  = params.brake_failure ? '#b71c1c' : (frame.is_braking ? '#1b5e20' : '#2e7d32');
+    const carLight = params.brake_failure ? '#ef5350' : (frame.is_braking ? '#66bb6a' : '#69f0ae');
+
+    // 阴影
+    ctx.fillStyle = 'rgba(0,0,0,0.07)';
+    ctx.beginPath();
+    ctx.ellipse(cx, cy + carH/2 + 3, carW/2 + 1, 4, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 车身
+    ctx.fillStyle = carColor;
+    ctx.beginPath();
+    ctx.moveTo(cx - carW/2 + 3, cy + carH/2 - 2);
+    ctx.lineTo(cx - carW/2,     cy + carH/2 - 5);
+    ctx.lineTo(cx - carW/2,     cy - carH/2 + 5);
+    ctx.lineTo(cx - carW/2 + 5, cy - carH/2);
+    ctx.lineTo(cx + carW/2 - 5, cy - carH/2);
+    ctx.lineTo(cx + carW/2,     cy - carH/2 + 3);
+    ctx.lineTo(cx + carW/2 + 2, cy - carH/2 + 6);
+    ctx.lineTo(cx + carW/2 + 2, cy + carH/2 - 3);
+    ctx.lineTo(cx + carW/2,     cy + carH/2 - 2);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = carDark; ctx.lineWidth = 0.8; ctx.stroke();
+
+    // 车顶/窗
+    ctx.fillStyle = 'rgba(135,206,250,0.45)';
+    ctx.beginPath();
+    ctx.moveTo(cx - carW/2 + 9,  cy - carH/2 + 0.5);
+    ctx.lineTo(cx - carW/2 + 12, cy - carH/2 - 7);
+    ctx.lineTo(cx + carW/2 - 9,  cy - carH/2 - 7);
+    ctx.lineTo(cx + carW/2 - 7,  cy - carH/2 - 5);
+    ctx.lineTo(cx + carW/2 - 7,  cy - carH/2 + 0.5);
+    ctx.closePath(); ctx.fill();
+
+    // B柱
+    ctx.strokeStyle = carDark; ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(cx - 1, cy - carH/2 - 7);
+    ctx.lineTo(cx - 1, cy - carH/2 + 0.5);
+    ctx.stroke();
+
+    // 前灯
+    ctx.fillStyle = frame.is_braking ? 'rgba(249,168,37,0.9)' : '#fffde7';
+    ctx.beginPath();
+    ctx.ellipse(cx + carW/2 + 1, cy - carH/2 + 6, 2, 2.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 尾灯
+    ctx.fillStyle = '#ff1744';
+    ctx.fillRect(cx - carW/2 - 0.5, cy - carH/2 + 3, 2, 3.5);
+    if (frame.is_braking && !params.brake_failure) {
+        const bg = ctx.createRadialGradient(cx - carW/2, cy - carH/2 + 5, 0, cx - carW/2, cy - carH/2 + 5, 10);
+        bg.addColorStop(0, 'rgba(255,23,68,0.3)'); bg.addColorStop(1, 'rgba(255,23,68,0)');
+        ctx.fillStyle = bg;
+        ctx.beginPath(); ctx.arc(cx - carW/2, cy - carH/2 + 5, 10, 0, Math.PI * 2); ctx.fill();
+    }
+
+    // 车轮
+    [[cx - carW/2 + 8, cy + carH/2 - 2],[cx + carW/2 - 8, cy + carH/2 - 2]].forEach(([wx, wy]) => {
+        ctx.fillStyle = '#1A1A1A'; ctx.beginPath(); ctx.arc(wx, wy, 3.5, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#9e9e9e'; ctx.beginPath(); ctx.arc(wx, wy, 2, 0, Math.PI*2); ctx.fill();
+    });
+
+    // 制动拖尾
+    if (frame.is_braking && !frame.is_stopped && !params.brake_failure) {
+        const bg2 = ctx.createRadialGradient(cx - carW/2, cy, 0, cx - carW/2, cy, 28);
+        bg2.addColorStop(0, 'rgba(0,200,83,0.09)'); bg2.addColorStop(1, 'rgba(0,200,83,0)');
+        ctx.fillStyle = bg2; ctx.beginPath(); ctx.arc(cx - carW/2, cy, 28, 0, Math.PI*2); ctx.fill();
+    }
+}
+
+// ---- 货车（扁平货车，头+货厢） ----
+function drawTruck(ctx, cx, cy, frame, params) {
+    const cabW = 18, cabH = 22;      // 驾驶室高度
+    const bodyW = 38, bodyH = 18;    // 货厢
+    const totalW = cabW + bodyW;
+
+    const truckColor = params.brake_failure ? '#e53935' : (frame.is_braking ? '#ff8f00' : '#ffa726');
+    const truckDark  = params.brake_failure ? '#b71c1c' : '#e65100';
+    const bodyColor  = params.brake_failure ? '#c62828' : '#607d8b';
+
+    // 驾驶室在右（前进方向），货厢在左
+    const cabRight  = cx + totalW / 2;
+    const cabLeft   = cabRight - cabW;
+    const bodyRight = cabLeft;
+    const bodyLeft  = bodyRight - bodyW;
+    const top    = cy - cabH / 2;
+    const bottom = cy + cabH / 2;
+
+    // 阴影
+    ctx.fillStyle = 'rgba(0,0,0,0.08)';
+    ctx.beginPath();
+    ctx.ellipse(cx, bottom + 3, totalW / 2 + 2, 4, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 货厢
+    const boxTop = cy - bodyH / 2;
+    const boxBot = cy + bodyH / 2;
+    ctx.fillStyle = bodyColor;
+    ctx.beginPath();
+    ctx.rect(bodyLeft, boxTop, bodyW, bodyH);
+    ctx.fill();
+    ctx.strokeStyle = truckDark; ctx.lineWidth = 0.8; ctx.stroke();
+
+    // 货厢横向加强筋
+    for (let bi = 1; bi < 3; bi++) {
+        const bx = bodyLeft + (bodyW / 3) * bi;
+        ctx.strokeStyle = 'rgba(0,0,0,0.12)'; ctx.lineWidth = 0.5;
+        ctx.beginPath(); ctx.moveTo(bx, boxTop); ctx.lineTo(bx, boxBot); ctx.stroke();
+    }
+
+    // 驾驶室（略高于货厢）
+    ctx.fillStyle = truckColor;
+    ctx.beginPath();
+    ctx.moveTo(cabLeft,      bottom - 2);
+    ctx.lineTo(cabLeft,      top + 5);
+    ctx.lineTo(cabLeft + 4,  top);
+    ctx.lineTo(cabRight - 1, top + 1);
+    ctx.lineTo(cabRight + 2, top + 5);
+    ctx.lineTo(cabRight + 2, bottom - 2);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = truckDark; ctx.lineWidth = 0.8; ctx.stroke();
+
+    // 驾驶室窗（蓝玻璃）
+    ctx.fillStyle = 'rgba(135,206,250,0.5)';
+    ctx.beginPath();
+    ctx.moveTo(cabLeft + 2,  top + 5);
+    ctx.lineTo(cabLeft + 5,  top + 1);
+    ctx.lineTo(cabRight - 2, top + 2);
+    ctx.lineTo(cabRight,     top + 6);
+    ctx.closePath(); ctx.fill();
+
+    // 前灯
+    ctx.fillStyle = frame.is_braking ? 'rgba(249,168,37,0.9)' : '#fffde7';
+    ctx.beginPath();
+    ctx.ellipse(cabRight + 1, bottom - 5, 2, 3, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 尾灯
+    ctx.fillStyle = '#ff1744';
+    ctx.fillRect(bodyLeft - 1, bottom - 7, 2.5, 4);
+    if (frame.is_braking && !params.brake_failure) {
+        const bg = ctx.createRadialGradient(bodyLeft, bottom - 5, 0, bodyLeft, bottom - 5, 12);
+        bg.addColorStop(0, 'rgba(255,23,68,0.3)'); bg.addColorStop(1, 'rgba(255,23,68,0)');
+        ctx.fillStyle = bg;
+        ctx.beginPath(); ctx.arc(bodyLeft, bottom - 5, 12, 0, Math.PI * 2); ctx.fill();
+    }
+
+    // 车轮（3个，双后轮视觉）
+    [
+        [bodyLeft + bodyW * 0.2, bottom],
+        [bodyLeft + bodyW * 0.65, bottom],
+        [cabLeft + cabW * 0.45, bottom]
+    ].forEach(([wx, wy]) => {
+        ctx.fillStyle = '#1A1A1A'; ctx.beginPath(); ctx.arc(wx, wy, 4.5, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#9e9e9e'; ctx.beginPath(); ctx.arc(wx, wy, 2.5, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#616161'; ctx.beginPath(); ctx.arc(wx, wy, 1,   0, Math.PI * 2); ctx.fill();
+    });
+
+    // 制动拖尾
+    if (frame.is_braking && !frame.is_stopped && !params.brake_failure) {
+        const bg2 = ctx.createRadialGradient(bodyLeft, cy, 0, bodyLeft, cy, 32);
+        bg2.addColorStop(0, 'rgba(255,152,0,0.09)'); bg2.addColorStop(1, 'rgba(255,152,0,0)');
+        ctx.fillStyle = bg2;
+        ctx.beginPath(); ctx.arc(bodyLeft, cy, 32, 0, Math.PI * 2); ctx.fill();
+    }
+}
+
+function updateRoadSpeed(roadKey, speed) {
+    const el = roadTableBody.querySelector('.rr-speed[data-road-key="' + roadKey + '"]');
+    if (el) el.textContent = speed.toFixed(1);
+}
+
+function updateRoadStatus(roadKey, frame, roadResult) {
+    const el = roadTableBody.querySelector('.rr-status[data-status-key="' + roadKey + '"]');
+    if (!el) return;
+    if (frame.is_collision) {
+        el.className = 'rr-status ' + (roadResult.barrier_can_hold ? 'st-collision-hold' : 'st-collision-fail');
+        el.textContent = roadResult.barrier_can_hold ? '阻拦成功' : '阻拦失败';
+    } else if (frame.is_stopped) {
+        el.className = 'rr-status st-stopped'; el.textContent = '安全停止';
+    } else if (frame.is_braking) {
+        el.className = 'rr-status st-braking'; el.textContent = '制动中';
+    } else {
+        el.className = 'rr-status st-driving'; el.textContent = '行驶中';
+    }
+}
+
+function updateRoadEnergy(roadKey, roadResult) {
+    const el = roadTableBody.querySelector('.rr-energy[data-energy-key="' + roadKey + '"]');
+    if (!el) return;
+    if (roadResult.hits_barrier) {
+        el.textContent = roadResult.collision_energy_kj + ' kJ';
+        el.className = 'rr-energy active';
+    } else {
+        el.textContent = '0 kJ'; el.className = 'rr-energy';
+    }
+}
+
+function stopAnimation() { if (animTimer) { clearTimeout(animTimer); animTimer = null; } }
+
+// Live data updates
+function updateLiveData(frame, roadLength, roadResult) {
+    const posPercent = Math.min((frame.position / roadLength) * 100, 100);
+    positionText.textContent = frame.position.toFixed(1) + ' / ' + roadLength + ' m';
+    positionFill.style.width = posPercent + '%';
+    if (posPercent > 80) positionFill.classList.add('danger');
+    else positionFill.classList.remove('danger');
+    decelVal.innerHTML = frame.deceleration.toFixed(2) + '<span class="unit">m/s²</span>';
+    timeVal.innerHTML = frame.time.toFixed(2) + '<span class="unit">s</span>';
+}
+
+
+init();
+
+window.addEventListener('resize', () => {
+    if (animationContainer.style.display === 'block' && animationCanvas.height > 0) {
+        const w = animationContainer.clientWidth, h = animationContainer.clientHeight;
+        if (w > 0 && h > 0 && (w !== animationCanvas.width || h !== animationCanvas.height)) {
+            animationCanvas.width = w; animationCanvas.height = h;
+        }
+    }
+});
+</script>
+</body>
+</html>

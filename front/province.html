@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>省份详情 — 护栏安全设计系统 v4.1</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@4/map/js/china.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;600;800&display=swap');
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --red: #BE1E2D; --yellow: #F5C518; --blue: #1B3B6F;
+            --black: #1A1A1A; --white: #FAFAFA; --gray: #E8E4DE;
+            --gray-dark: #8C8780; --gray-light: #F2F0EC;
+            --border: #D5D0C8;
+        }
+        body {
+            font-family: "Noto Sans SC", "Helvetica Neue", Helvetica, Arial, sans-serif;
+            background: var(--white); color: var(--black); min-height: 100vh;
+            font-size: 14px; font-weight: 400; -webkit-font-smoothing: antialiased;
+        }
+
+        /* ===== HEADER ===== */
+        .header {
+            height: 56px; padding: 0 32px; display: flex; align-items: center; justify-content: space-between;
+            background: var(--white); border-bottom: 3px solid var(--black);
+            position: sticky; top: 0; z-index: 100;
+        }
+        .header-left { display: flex; align-items: center; gap: 12px; }
+        .nav-logo { width: 28px; height: 28px; background: var(--red); border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+        .nav-logo-inner { width: 14px; height: 14px; background: var(--yellow); border-radius: 50%; }
+        .header h1 { font-size: 15px; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; }
+        .header .version { font-size: 11px; font-weight: 700; color: var(--gray-dark); background: var(--gray-light); padding: 3px 8px; letter-spacing: 1px; }
+        .nav-links { display: flex; gap: 2px; margin-left: 12px; }
+        .nav-link {
+            padding: 7px 16px; font-size: 12px; font-weight: 700; text-decoration: none;
+            color: var(--black); letter-spacing: 1px; text-transform: uppercase;
+            border: 2px solid transparent; transition: all 0.15s; cursor: pointer;
+        }
+        .nav-link:hover { background: var(--gray-light); }
+        .nav-link.active { background: var(--black); color: var(--white); }
+
+        /* ===== BREADCRUMB ===== */
+        .breadcrumb {
+            padding: 10px 32px; background: var(--gray-light); border-bottom: 2px solid var(--border);
+            font-size: 13px; color: var(--gray-dark); font-weight: 600; letter-spacing: 1px;
+        }
+        .breadcrumb a { color: var(--blue); text-decoration: none; }
+        .breadcrumb a:hover { text-decoration: underline; }
+        .breadcrumb .sep { margin: 0 8px; }
+        .breadcrumb .current { color: var(--black); font-weight: 900; }
+
+        /* ===== MAIN LAYOUT ===== */
+        .main-wrap {
+            display: flex; height: calc(100vh - 48px - 34px); overflow: hidden;
+        }
+
+        /* ===== LEFT SIDEBAR ===== */
+        .left-sidebar {
+            width: 380px; min-width: 320px;
+            background: var(--white); border-right: 3px solid var(--black);
+            overflow-y: auto; flex-shrink: 0; display: flex; flex-direction: column;
+        }
+
+        /* 省份地图轮廓 */
+        .prov-map-section {
+            padding: 16px; border-bottom: 2px solid var(--border);
+        }
+        .prov-map-title {
+            font-size: 10px; color: var(--gray-dark); letter-spacing: 3px;
+            text-transform: uppercase; margin-bottom: 8px; font-weight: 900;
+        }
+        #provMapChart {
+            width: 100%; height: 220px; border: 2px solid var(--black);
+            background: var(--gray-light);
+        }
+
+        /* 圆环图 + 站点列表并排 */
+        .prov-summary-section {
+            padding: 16px; border-bottom: 2px solid var(--border);
+            display: flex; gap: 12px;
+        }
+        .donut-area { flex-shrink: 0; }
+        #donutChart { width: 160px; height: 160px; }
+        .station-list-area { flex: 1; overflow-y: auto; max-height: 200px; }
+        .station-list-area::-webkit-scrollbar { width: 4px; }
+        .station-list-area::-webkit-scrollbar-thumb { background: var(--gray-dark); border-radius: 2px; }
+        .station-list-title {
+            font-size: 10px; color: var(--gray-dark); letter-spacing: 3px;
+            text-transform: uppercase; margin-bottom: 6px; font-weight: 900;
+        }
+        .station-list { display: flex; flex-direction: column; gap: 2px; }
+        .station-list-item {
+            padding: 5px 10px; font-size: 12px; cursor: pointer;
+            transition: all 0.15s; color: var(--gray-dark);
+            display: flex; justify-content: space-between; align-items: center;
+            font-weight: 600;
+        }
+        .station-list-item:hover { background: var(--gray-light); color: var(--black); }
+        .station-list-item.active {
+            background: var(--red); color: var(--white); font-weight: 700;
+        }
+        .station-list-item .sl-temp { font-size: 11px; font-weight: 700; }
+        .station-list-item .sl-temp.cold { color: var(--blue); }
+        .station-list-item .sl-temp.hot { color: var(--red); }
+        .station-list-item.active .sl-temp { color: var(--white); }
+
+        /* 数据说明 */
+        .prov-data-info {
+            padding: 12px 16px; border-bottom: 1px solid var(--border);
+        }
+        .prov-data-info-label {
+            font-size: 10px; color: var(--text-dim); letter-spacing: 2px;
+            text-transform: uppercase; margin-bottom: 4px;
+        }
+        .prov-data-info-text { font-size: 12px; color: var(--text-secondary); line-height: 1.6; }
+
+        /* ===== 模拟区域 ===== */
+        .sim-section {
+            padding: 20px 16px; border-bottom: 2px solid var(--border);
+            background: var(--gray-light);
+        }
+        .sim-section-label {
+            font-size: 11px; font-weight: 900; color: var(--gray-dark);
+            letter-spacing: 3px; text-transform: uppercase; margin-bottom: 12px;
+        }
+        .sim-input {
+            width: 100%; padding: 12px 14px; border: 2px solid var(--black);
+            background: var(--white); font-size: 14px; font-family: inherit;
+            font-weight: 600; outline: none; margin-bottom: 8px;
+        }
+        .sim-input:focus { border-color: var(--red); }
+        .sim-input::placeholder { color: var(--gray-dark); font-weight: 400; }
+        .sim-match-info {
+            font-size: 11px; color: var(--gray-dark); margin-bottom: 12px;
+            min-height: 18px; letter-spacing: 0.5px;
+        }
+        .sim-match-info .matched { color: var(--blue); font-weight: 700; }
+        .sim-start-btn {
+            width: 100%; padding: 14px; background: var(--red); color: var(--white);
+            border: none; font-size: 15px; font-weight: 900; font-family: inherit;
+            letter-spacing: 4px; text-transform: uppercase; cursor: pointer;
+            transition: background 0.15s;
+        }
+        .sim-start-btn:hover { background: #A01825; }
+        .sim-start-btn:disabled { background: var(--gray); color: var(--gray-dark); cursor: not-allowed; }
+
+        /* ===== RIGHT CONTENT (8个图表) ===== */
+        .right-content {
+            flex: 1; overflow-y: auto; padding: 20px;
+        }
+
+        /* 省份标题 */
+        .prov-page-title {
+            font-size: 22px; font-weight: 900; color: var(--black); margin-bottom: 20px;
+            letter-spacing: 4px; text-transform: uppercase;
+        }
+
+        /* 图表网格 */
+        .charts-grid {
+            display: grid; gap: 2px;
+        }
+        .charts-grid.row-2 { grid-template-columns: repeat(2, 1fr); }
+        .charts-grid.row-3 { grid-template-columns: repeat(3, 1fr); }
+
+        .chart-card {
+            background: var(--white); border: 2px solid var(--black);
+            overflow: hidden;
+        }
+        .chart-card-header {
+            padding: 10px 14px; border-bottom: 2px solid var(--black);
+            background: var(--gray-light); display: flex; align-items: center; gap: 8px;
+        }
+        .chart-card-dot {
+            width: 8px; height: 8px; flex-shrink: 0;
+        }
+        .chart-card-dot.green { background: var(--yellow); }
+        .chart-card-dot.blue { background: var(--blue); }
+        .chart-card-dot.red { background: var(--red); }
+        .chart-card-dot.yellow { background: var(--yellow); }
+        .chart-card-dot.cyan { background: var(--blue); }
+        .chart-card-title {
+            font-size: 12px; font-weight: 900; color: var(--black);
+            letter-spacing: 1px; text-transform: uppercase;
+        }
+        .chart-card-body { padding: 8px; }
+        .chart-container { width: 100%; height: 260px; }
+
+        /* ===== LOADING ===== */
+        .loading-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: var(--white); display: flex; align-items: center; justify-content: center;
+            z-index: 1000; font-size: 14px; color: var(--gray-dark); letter-spacing: 3px; font-weight: 900; text-transform: uppercase;
+        }
+        .loading-overlay.hidden { display: none; }
+
+        /* ===== SCROLLBAR ===== */
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: var(--gray-light); }
+        ::-webkit-scrollbar-thumb { background: var(--gray-dark); border-radius: 0; }
+    </style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div class="loading-overlay" id="loadingOverlay">LOADING...</div>
+
+<!-- HEADER -->
+<header class="header">
+    <div class="header-left">
+        <div class="nav-logo"><div class="nav-logo-inner"></div></div>
+        <h1>护栏安全设计系统</h1>
+        <span class="version">v4.1</span>
+        <div class="nav-links">
+            <a class="nav-link" href="/">首页</a>
+            <a class="nav-link active" href="/map">气候地图</a>
+            <a class="nav-link" href="/history">模拟记录</a>
+            <a class="nav-link" href="/chat">AI 助手</a>
+        </div>
+    </div>
+</header>
+
+<!-- BREADCRUMB -->
+<div class="breadcrumb">
+    <a href="/map">气候地图</a>
+    <span class="sep">/</span>
+    <span class="current" id="breadcrumbName">--</span>
+</div>
+
+<!-- MAIN -->
+<div class="main-wrap">
+    <!-- LEFT -->
+    <div class="left-sidebar">
+        <div class="prov-map-section">
+            <div class="prov-map-title">省份轮廓</div>
+            <div id="provMapChart"></div>
+        </div>
+        <div class="prov-summary-section">
+            <div class="donut-area">
+                <div id="donutChart"></div>
+            </div>
+            <div class="station-list-area">
+                <div class="station-list-title">监测站点</div>
+                <div class="station-list" id="stationList"></div>
+            </div>
+        </div>
+        <div class="prov-data-info">
+            <div class="prov-data-info-label">当前数据</div>
+            <div class="prov-data-info-text" id="dataInfoText">省份平均数据</div>
+        </div>
+        <!-- 模拟区域 -->
+        <div class="sim-section">
+            <div class="sim-section-label">碰撞模拟</div>
+            <input type="text" class="sim-input" id="simLocation" placeholder="输入地点名称..." oninput="matchStation(this.value)">
+            <div class="sim-match-info" id="simMatchInfo"></div>
+            <button class="sim-start-btn" id="simStartBtn" disabled onclick="startSimulation()">开始模拟</button>
+        </div>
+    </div>
+
+    <!-- RIGHT -->
+    <div class="right-content">
+        <div class="prov-page-title" id="provPageTitle">--</div>
+
+        <!-- Row 1: 1+2 -->
+        <div class="charts-grid row-2" style="margin-bottom:16px">
+            <div class="chart-card">
+                <div class="chart-card-header">
+                    <span class="chart-card-dot blue"></span>
+                    <span class="chart-card-title">月均气温变化</span>
+                </div>
+                <div class="chart-card-body"><div id="chart1" class="chart-container"></div></div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-card-header">
+                    <span class="chart-card-dot cyan"></span>
+                    <span class="chart-card-title">月均降水量</span>
+                </div>
+                <div class="chart-card-body"><div id="chart2" class="chart-container"></div></div>
+            </div>
+        </div>
+
+        <!-- Row 2: 3+4+5 -->
+        <div class="charts-grid row-3" style="margin-bottom:16px">
+            <div class="chart-card">
+                <div class="chart-card-header">
+                    <span class="chart-card-dot blue"></span>
+                    <span class="chart-card-title">月度潮湿度</span>
+                </div>
+                <div class="chart-card-body"><div id="chart3" class="chart-container"></div></div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-card-header">
+                    <span class="chart-card-dot cyan"></span>
+                    <span class="chart-card-title">月度结冰度</span>
+                </div>
+                <div class="chart-card-body"><div id="chart4" class="chart-container"></div></div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-card-header">
+                    <span class="chart-card-dot green"></span>
+                    <span class="chart-card-title">月度积雪度</span>
+                </div>
+                <div class="chart-card-body"><div id="chart5" class="chart-container"></div></div>
+            </div>
+        </div>
+
+        <!-- Row 3: 6+7+8 -->
+        <div class="charts-grid row-3">
+            <div class="chart-card">
+                <div class="chart-card-header">
+                    <span class="chart-card-dot blue"></span>
+                    <span class="chart-card-title">潮湿度分布 (南丁格尔)</span>
+                </div>
+                <div class="chart-card-body"><div id="chart6" class="chart-container"></div></div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-card-header">
+                    <span class="chart-card-dot cyan"></span>
+                    <span class="chart-card-title">结冰度分布 (南丁格尔)</span>
+                </div>
+                <div class="chart-card-body"><div id="chart7" class="chart-container"></div></div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-card-header">
+                    <span class="chart-card-dot green"></span>
+                    <span class="chart-card-title">积雪度分布 (南丁格尔)</span>
+                </div>
+                <div class="chart-card-body"><div id="chart8" class="chart-container"></div></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const MONTHS = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+
+// 省份ECharts名称映射（反向）
+const PROV_TO_ECHARTS = {
+    '北京':'北京','天津':'天津','上海':'上海','重庆':'重庆',
+    '河北':'河北','山西':'山西','辽宁':'辽宁','吉林':'吉林','黑龙江':'黑龙江',
+    '江苏':'江苏','浙江':'浙江','安徽':'安徽','福建':'福建','江西':'江西','山东':'山东',
+    '河南':'河南','湖北':'湖北','湖南':'湖南','广东':'广东','海南':'海南',
+    '四川':'四川','贵州':'贵州','云南':'云南','陕西':'陕西','甘肃':'甘肃',
+    '青海':'青海','台湾':'台湾','内蒙古':'内蒙古','广西':'广西','西藏':'西藏',
+    '宁夏':'宁夏','新疆':'新疆','香港':'香港','澳门':'澳门','南海诸岛':'南海诸岛'
+};
+
+// GeoJSON下载URL模板
+const GEO_URL = 'https://geo.datav.aliyun.com/areas_v3/bound/{code}_full.json';
+
+// 省份行政代码
+const PROV_CODES = {
+    '北京':'110000','天津':'120000','河北':'130000','山西':'140000','内蒙古':'150000',
+    '辽宁':'210000','吉林':'220000','黑龙江':'230000','上海':'310000','江苏':'320000',
+    '浙江':'330000','安徽':'340000','福建':'350000','江西':'360000','山东':'370000',
+    '河南':'410000','湖北':'420000','湖南':'430000','广东':'440000','广西':'450000',
+    '海南':'460000','重庆':'500000','四川':'510000','贵州':'520000','云南':'530000',
+    '西藏':'540000','陕西':'610000','甘肃':'620000','青海':'630000','宁夏':'640000',
+    '新疆':'650000','台湾':'710000','香港':'810000','澳门':'820000'
+};
+
+let climateData = null;
+let provinceName = '';
+let provinceData = null;
+let currentViewStation = null; // null = 省份平均, number = 站点index
+
+// ECharts实例
+let provMapChart = null, donutChart = null;
+const chartInstances = [];
+
+// ===== 危险评估 =====
+function assessDanger(temp, precip, monthIdx) {
+    const t = temp ? temp[monthIdx] : 15;
+    const p = precip ? precip[monthIdx] : 50;
+    const wetness = Math.min(1, Math.max(0, p / 200));
+    const snow = t < 0 ? Math.min(1, Math.abs(t) / 15) : 0;
+    let icing = 0;
+    if (t >= -5 && t <= 2 && p > 10) icing = Math.min(1, p / 100);
+    else if (t < -5) icing = 0.15;
+    return { wetness, snow, icing };
+}
+
+// 获取12个月的危险指标数组
+function getDangerSeries(tempArr, precipArr) {
+    const wetness = [], snow = [], icing = [];
+    for (let i = 0; i < 12; i++) {
+        const d = assessDanger(tempArr, precipArr, i);
+        wetness.push(d.wetness);
+        snow.push(d.snow);
+        icing.push(d.icing);
+    }
+    return { wetness, snow, icing };
+}
+
+// 获取平均数据
+function getAvgData() {
+    if (!provinceData || !provinceData.stations.length) return null;
+    const n = provinceData.stations.length;
+    const avgTemp = new Array(12).fill(0);
+    const avgPrecip = new Array(12).fill(0);
+    provinceData.stations.forEach(s => {
+        for (let i = 0; i < 12; i++) {
+            avgTemp[i] += (s.monthly_temp ? s.monthly_temp[i] : 0);
+            avgPrecip[i] += (s.monthly_precip ? s.monthly_precip[i] : 0);
+        }
+    });
+    for (let i = 0; i < 12; i++) {
+        avgTemp[i] = Math.round(avgTemp[i] / n * 10) / 10;
+        avgPrecip[i] = Math.round(avgPrecip[i] / n);
+    }
+    return { avgTemp, avgPrecip };
+}
+
+// 获取站点数据
+function getStationData(idx) {
+    const s = provinceData.stations[idx];
+    if (!s) return null;
+    return { avgTemp: s.monthly_temp || new Array(12).fill(15), avgPrecip: s.monthly_precip || new Array(12).fill(50) };
+}
+
+// ===== 初始化 =====
+async function init() {
+    // 从URL获取省份名
+    const pathParts = decodeURIComponent(window.location.pathname).split('/');
+    provinceName = pathParts[pathParts.length - 1] || '';
+    if (!provinceName) { document.getElementById('loadingOverlay').textContent = '缺少省份参数'; return; }
+
+    document.title = provinceName + ' — 护栏安全设计系统 v4.1';
+    document.getElementById('breadcrumbName').textContent = provinceName;
+    document.getElementById('provPageTitle').textContent = provinceName + '气候详情';
+
+    // 加载气候数据
+    try {
+        const resp = await fetch('/api/climate');
+        const json = await resp.json();
+        if (json.success) climateData = json.data;
+        else { document.getElementById('loadingOverlay').textContent = '气候数据加载失败'; return; }
+    } catch(e) {
+        document.getElementById('loadingOverlay').textContent = '网络错误'; return;
+    }
+
+    provinceData = climateData.provinces[provinceName];
+    if (!provinceData) {
+        document.getElementById('loadingOverlay').textContent = '未找到省份: ' + provinceName;
+        return;
+    }
+
+    // 构建站点列表
+    buildStationList();
+
+    // 加载省份地图GeoJSON
+    await loadProvinceMap();
+
+    // 初始化圆环图
+    donutChart = echarts.init(document.getElementById('donutChart'));
+
+    // 初始化8个图表
+    for (let i = 1; i <= 8; i++) {
+        const chart = echarts.init(document.getElementById('chart' + i));
+        chartInstances.push(chart);
+    }
+
+    // 渲染所有图表（省份平均）
+    renderAllCharts(getAvgData());
+    updateDonut(getAvgData());
+    document.getElementById('dataInfoText').textContent = '当前显示: ' + provinceName + ' 省份平均数据（' + provinceData.stations.length + '站）';
+
+    // 隐藏loading
+    document.getElementById('loadingOverlay').classList.add('hidden');
+
+    // 响应式
+    window.addEventListener('resize', () => {
+        provMapChart && provMapChart.resize();
+        donutChart && donutChart.resize();
+        chartInstances.forEach(c => c.resize());
+    });
+}
+
+// ===== 加载省份地图 =====
+async function loadProvinceMap() {
+    const code = PROV_CODES[provinceName];
+    if (!code) return;
+
+    try {
+        const resp = await fetch(GEO_URL.replace('{code}', code));
+        const geoJson = await resp.json();
+        echarts.registerMap('province', geoJson);
+
+        provMapChart = echarts.init(document.getElementById('provMapChart'));
+        provMapChart.setOption({
+            tooltip: { show: false },
+            geo: {
+                map: 'province', roam: false,
+                label: { show: true, fontSize: 8, color: '#5a6070' },
+                itemStyle: {
+                    areaColor: '#e3eef8', borderColor: '#8ab4e0', borderWidth: 2
+                },
+                emphasis: {
+                    label: { color: '#fff', fontWeight: 'bold' },
+                    itemStyle: { areaColor: '#1976d2' }
+                }
+            },
+            series: [{
+                type: 'map', map: 'province', geoIndex: 0,
+                data: [{ name: provinceName, value: 0 }]
+            }]
+        });
+    } catch(e) {
+        console.warn('省份地图加载失败:', e);
+    }
+}
+
+// ===== 构建站点列表 =====
+function buildStationList() {
+    const container = document.getElementById('stationList');
+    if (!provinceData || !provinceData.stations.length) {
+        container.innerHTML = '<div style="padding:8px;color:var(--text-dim)">暂无站点</div>';
+        return;
+    }
+    // 省份平均项
+    let html = `<div class="station-list-item active" onclick="selectViewStation(null, this)">`;
+    html += `<span>省份平均</span>`;
+    html += `<span class="sl-temp">${provinceData.stations.length}站</span>`;
+    html += `</div>`;
+    // 各站点
+    provinceData.stations.forEach((s, idx) => {
+        const t = s.monthly_temp ? s.monthly_temp[new Date().getMonth()] : 0;
+        const cls = t > 25 ? 'hot' : t < 0 ? 'cold' : '';
+        html += `<div class="station-list-item" data-idx="${idx}" onclick="selectViewStation(${idx}, this)">`;
+        html += `<span>${s.name}</span>`;
+        html += `<span class="sl-temp ${cls}">${t.toFixed(1)}\u00b0C</span>`;
+        html += `</div>`;
+    });
+    container.innerHTML = html;
+}
+
+function selectViewStation(idx, el) {
+    currentViewStation = idx;
+    // 更新列表高亮
+    document.querySelectorAll('.station-list-item').forEach(e => e.classList.remove('active'));
+    if (el) el.classList.add('active');
+
+    const data = idx === null ? getAvgData() : getStationData(idx);
+    if (!data) return;
+
+    renderAllCharts(data);
+    updateDonut(data);
+
+    if (idx === null) {
+        document.getElementById('dataInfoText').textContent = '当前显示: ' + provinceName + ' 省份平均数据（' + provinceData.stations.length + '站）';
+    } else {
+        const s = provinceData.stations[idx];
+        document.getElementById('dataInfoText').textContent = '当前显示: ' + s.name + '（' + s.lat + '\u00b0N, ' + s.lon + '\u00b0E）';
+    }
+}
+
+// ===== 圆环图 =====
+function updateDonut(data) {
+    if (!data || !donutChart) return;
+    const danger = getDangerSeries(data.avgTemp, data.avgPrecip);
+    // 计算年度平均
+    const avgWetness = danger.wetness.reduce((a,b) => a+b, 0) / 12;
+    const avgSnow = danger.snow.reduce((a,b) => a+b, 0) / 12;
+    const avgIcing = danger.icing.reduce((a,b) => a+b, 0) / 12;
+    const normal = Math.max(0, 1 - avgWetness - avgSnow - avgIcing);
+    // 确保总和合理
+    const total = avgWetness + avgSnow + avgIcing + normal;
+    const w = Math.round(avgWetness / total * 100);
+    const s = Math.round(avgSnow / total * 100);
+    const ic = Math.round(avgIcing / total * 100);
+    const n = 100 - w - s - ic;
+
+    donutChart.setOption({
+        tooltip: {
+            trigger: 'item',
+            formatter: '{b}: {d}%'
+        },
+        legend: {
+            bottom: 0, left: 'center',
+            itemWidth: 10, itemHeight: 10, itemGap: 6,
+            textStyle: { fontSize: 10, color: '#8a90a2' }
+        },
+        series: [{
+            type: 'pie',
+            radius: ['45%', '70%'],
+            center: ['50%', '45%'],
+            avoidLabelOverlap: false,
+            itemStyle: { borderRadius: 4, borderColor: '#fff', borderWidth: 2 },
+            label: { show: false },
+            emphasis: {
+                label: { show: true, fontSize: 12, fontWeight: 'bold' }
+            },
+            data: [
+                { value: w, name: '潮湿', itemStyle: { color: '#1976d2' } },
+                { value: ic, name: '结冰', itemStyle: { color: '#00acc1' } },
+                { value: s, name: '积雪', itemStyle: { color: '#00c853' } },
+                { value: n, name: '正常', itemStyle: { color: '#e8eaef' } }
+            ]
+        }]
+    });
+}
+
+// ===== 渲染8个图表 =====
+function renderAllCharts(data) {
+    if (!data) return;
+    const { avgTemp, avgPrecip } = data;
+    const danger = getDangerSeries(avgTemp, avgPrecip);
+
+    // Chart 1: 气温折线图
+    chartInstances[0].setOption({
+        tooltip: { trigger: 'axis', valueFormatter: v => v + '°C' },
+        grid: { left: 40, right: 16, top: 16, bottom: 28 },
+        xAxis: { type: 'category', data: MONTHS, axisLabel: { fontSize: 10, color: '#8a90a2' }, axisLine: { lineStyle: { color: '#dcdfe6' } } },
+        yAxis: { type: 'value', axisLabel: { fontSize: 10, color: '#8a90a2', formatter: '{value}°' }, splitLine: { lineStyle: { color: '#f0f1f4' } } },
+        series: [{
+            type: 'line', data: avgTemp, smooth: true,
+            lineStyle: { color: '#e53935', width: 2 },
+            itemStyle: { color: '#e53935' },
+            areaStyle: {
+                color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                    { offset: 0, color: 'rgba(229,57,53,0.15)' },
+                    { offset: 1, color: 'rgba(229,57,53,0.01)' }
+                ])
+            },
+            markLine: {
+                silent: true,
+                data: [{ yAxis: 0, lineStyle: { color: '#1976d2', type: 'dashed', width: 1 }, label: { show: false } }]
+            }
+        }]
+    });
+
+    // Chart 2: 降水柱状图
+    chartInstances[1].setOption({
+        tooltip: { trigger: 'axis', valueFormatter: v => v + 'mm' },
+        grid: { left: 40, right: 16, top: 16, bottom: 28 },
+        xAxis: { type: 'category', data: MONTHS, axisLabel: { fontSize: 10, color: '#8a90a2' }, axisLine: { lineStyle: { color: '#dcdfe6' } } },
+        yAxis: { type: 'value', axisLabel: { fontSize: 10, color: '#8a90a2', formatter: '{value}mm' }, splitLine: { lineStyle: { color: '#f0f1f4' } } },
+        series: [{
+            type: 'bar', data: avgPrecip, barWidth: '50%',
+            itemStyle: {
+                color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                    { offset: 0, color: '#42a5f5' },
+                    { offset: 1, color: '#bbdefb' }
+                ]),
+                borderRadius: [3, 3, 0, 0]
+            }
+        }]
+    });
+
+    // Chart 3: 潮湿度气泡图
+    chartInstances[2].setOption({
+        tooltip: { trigger: 'axis', valueFormatter: v => (v * 100).toFixed(1) + '%' },
+        grid: { left: 40, right: 16, top: 16, bottom: 28 },
+        xAxis: { type: 'category', data: MONTHS, axisLabel: { fontSize: 10, color: '#8a90a2' }, axisLine: { lineStyle: { color: '#dcdfe6' } } },
+        yAxis: { type: 'value', max: 1, axisLabel: { fontSize: 10, color: '#8a90a2', formatter: v => (v*100)+'%' }, splitLine: { lineStyle: { color: '#f0f1f4' } } },
+        series: [{
+            type: 'scatter', data: danger.wetness, symbolSize: function(val) { return Math.max(6, val * 28); },
+            itemStyle: { color: '#1976d2', opacity: 0.7 },
+            emphasis: { itemStyle: { opacity: 1 } }
+        }]
+    });
+
+    // Chart 4: 结冰度气泡图
+    chartInstances[3].setOption({
+        tooltip: { trigger: 'axis', valueFormatter: v => (v * 100).toFixed(1) + '%' },
+        grid: { left: 40, right: 16, top: 16, bottom: 28 },
+        xAxis: { type: 'category', data: MONTHS, axisLabel: { fontSize: 10, color: '#8a90a2' }, axisLine: { lineStyle: { color: '#dcdfe6' } } },
+        yAxis: { type: 'value', max: 1, axisLabel: { fontSize: 10, color: '#8a90a2', formatter: v => (v*100)+'%' }, splitLine: { lineStyle: { color: '#f0f1f4' } } },
+        series: [{
+            type: 'scatter', data: danger.icing, symbolSize: function(val) { return Math.max(6, val * 28); },
+            itemStyle: { color: '#00acc1', opacity: 0.7 },
+            emphasis: { itemStyle: { opacity: 1 } }
+        }]
+    });
+
+    // Chart 5: 积雪度气泡图
+    chartInstances[4].setOption({
+        tooltip: { trigger: 'axis', valueFormatter: v => (v * 100).toFixed(1) + '%' },
+        grid: { left: 40, right: 16, top: 16, bottom: 28 },
+        xAxis: { type: 'category', data: MONTHS, axisLabel: { fontSize: 10, color: '#8a90a2' }, axisLine: { lineStyle: { color: '#dcdfe6' } } },
+        yAxis: { type: 'value', max: 1, axisLabel: { fontSize: 10, color: '#8a90a2', formatter: v => (v*100)+'%' }, splitLine: { lineStyle: { color: '#f0f1f4' } } },
+        series: [{
+            type: 'scatter', data: danger.snow, symbolSize: function(val) { return Math.max(6, val * 28); },
+            itemStyle: { color: '#00c853', opacity: 0.7 },
+            emphasis: { itemStyle: { opacity: 1 } }
+        }]
+    });
+
+    // Chart 6: 潮湿度南丁格尔玫瑰图
+    const wetnessMax = Math.max(...danger.wetness, 0.01);
+    chartInstances[5].setOption({
+        tooltip: { trigger: 'item', valueFormatter: v => (v * 100).toFixed(1) + '%' },
+        legend: { bottom: 0, left: 'center', itemWidth: 8, itemHeight: 8, textStyle: { fontSize: 9, color: '#8a90a2' } },
+        series: [{
+            type: 'pie', roseType: 'area',
+            radius: ['15%', '65%'], center: ['50%', '45%'],
+            itemStyle: { borderRadius: 4, borderColor: '#fff', borderWidth: 1 },
+            label: { fontSize: 9, color: '#8a90a2' },
+            data: MONTHS.map((m, i) => ({
+                value: danger.wetness[i],
+                name: m,
+                itemStyle: {
+                    color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                        { offset: 0, color: '#42a5f5' },
+                        { offset: 1, color: '#bbdefb' }
+                    ])
+                }
+            }))
+        }]
+    });
+
+    // Chart 7: 结冰度南丁格尔玫瑰图
+    chartInstances[6].setOption({
+        tooltip: { trigger: 'item', valueFormatter: v => (v * 100).toFixed(1) + '%' },
+        legend: { bottom: 0, left: 'center', itemWidth: 8, itemHeight: 8, textStyle: { fontSize: 9, color: '#8a90a2' } },
+        series: [{
+            type: 'pie', roseType: 'area',
+            radius: ['15%', '65%'], center: ['50%', '45%'],
+            itemStyle: { borderRadius: 4, borderColor: '#fff', borderWidth: 1 },
+            label: { fontSize: 9, color: '#8a90a2' },
+            data: MONTHS.map((m, i) => ({
+                value: danger.icing[i],
+                name: m,
+                itemStyle: {
+                    color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                        { offset: 0, color: '#00acc1' },
+                        { offset: 1, color: '#b2ebf2' }
+                    ])
+                }
+            }))
+        }]
+    });
+
+    // Chart 8: 积雪度南丁格尔玫瑰图
+    chartInstances[7].setOption({
+        tooltip: { trigger: 'item', valueFormatter: v => (v * 100).toFixed(1) + '%' },
+        legend: { bottom: 0, left: 'center', itemWidth: 8, itemHeight: 8, textStyle: { fontSize: 9, color: '#8a90a2' } },
+        series: [{
+            type: 'pie', roseType: 'area',
+            radius: ['15%', '65%'], center: ['50%', '45%'],
+            itemStyle: { borderRadius: 4, borderColor: '#fff', borderWidth: 1 },
+            label: { fontSize: 9, color: '#8a90a2' },
+            data: MONTHS.map((m, i) => ({
+                value: danger.snow[i],
+                name: m,
+                itemStyle: {
+                    color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                        { offset: 0, color: '#00c853' },
+                        { offset: 1, color: '#b9f6ca' }
+                    ])
+                }
+            }))
+        }]
+    });
+}
+
+// ===== 站点匹配与模拟跳转 =====
+let matchedStationIdx = null;
+let matchedStationName = '';
+
+function matchStation(query) {
+    const info = document.getElementById('simMatchInfo');
+    const btn = document.getElementById('simStartBtn');
+    query = query.trim();
+    if (!query || !provinceData) {
+        info.innerHTML = '';
+        btn.disabled = true;
+        matchedStationIdx = null;
+        matchedStationName = '';
+        return;
+    }
+    // 在站点名称中搜索
+    let best = null;
+    let bestIdx = -1;
+    let bestScore = 0;
+    provinceData.stations.forEach((s, idx) => {
+        const name = s.name || '';
+        const q = query.toLowerCase();
+        const n = name.toLowerCase();
+        let score = 0;
+        if (n.includes(q)) score = q.length / name.length * 10; // 包含匹配
+        // 简单前缀匹配加分
+        if (n.startsWith(q)) score += 5;
+        if (score > bestScore) { bestScore = score; best = s; bestIdx = idx; }
+    });
+    if (best && bestScore > 0) {
+        matchedStationIdx = bestIdx;
+        matchedStationName = best.name;
+        const t = best.monthly_temp ? best.monthly_temp[new Date().getMonth()] : 0;
+        info.innerHTML = `已匹配: <span class="matched">${best.name}</span> (${t.toFixed(1)}\u00b0C, ${best.lat}\u00b0N)`;
+        btn.disabled = false;
+    } else {
+        matchedStationIdx = null;
+        matchedStationName = query;
+        info.innerHTML = '未找到匹配站点，将使用自定义地点';
+        btn.disabled = false;
+    }
+}
+
+function startSimulation() {
+    const loc = matchedStationName || document.getElementById('simLocation').value.trim();
+    if (!loc) return;
+    const params = new URLSearchParams({
+        province: provinceName,
+        location: loc,
+        station_idx: matchedStationIdx !== null ? matchedStationIdx : ''
+    });
+    window.location.href = '/simulator?' + params.toString();
+}
+
+init();
+</script>
+</body>
+</html>

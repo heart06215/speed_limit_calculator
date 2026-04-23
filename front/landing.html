@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>道路护栏安全设计系统 v4.1</title>
+    <style>
+        /* Bauhaus Design System */
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;600;700;900&display=swap');
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --red: #BE1E2D;
+            --yellow: #F5C518;
+            --blue: #1B3B6F;
+            --black: #1A1A1A;
+            --white: #FAFAFA;
+            --gray: #E8E4DE;
+            --gray-dark: #8C8780;
+            --gray-light: #F2F0EC;
+        }
+        body {
+            font-family: "Noto Sans SC", "Helvetica Neue", Helvetica, Arial, sans-serif;
+            background: var(--white); color: var(--black);
+            overflow-x: hidden; min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ===== NAV ===== */
+        .nav {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+            height: 56px; display: flex; align-items: center; justify-content: space-between;
+            padding: 0 32px; background: var(--white);
+            border-bottom: 3px solid var(--black);
+        }
+        .nav-left { display: flex; align-items: center; gap: 16px; }
+        .nav-logo {
+            width: 32px; height: 32px; background: var(--red); border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .nav-logo-inner {
+            width: 16px; height: 16px; background: var(--yellow); border-radius: 50%;
+        }
+        .nav-title {
+            font-size: 16px; font-weight: 900; letter-spacing: 2px; text-transform: uppercase;
+        }
+        .nav-links { display: flex; gap: 2px; }
+        .nav-link {
+            padding: 8px 20px; font-size: 13px; font-weight: 700; text-decoration: none;
+            color: var(--black); letter-spacing: 1px; text-transform: uppercase;
+            border: 2px solid transparent; transition: all 0.2s;
+        }
+        .nav-link:hover { background: var(--gray-light); }
+        .nav-link.active { background: var(--black); color: var(--white); }
+        .nav-version {
+            font-size: 11px; font-weight: 600; color: var(--gray-dark);
+            background: var(--gray-light); padding: 4px 10px; letter-spacing: 1px;
+        }
+
+        /* ===== HERO ===== */
+        .hero {
+            min-height: 100vh; display: flex; align-items: center; justify-content: center;
+            padding: 80px 32px 40px; position: relative;
+        }
+        .hero-grid {
+            position: absolute; top: 56px; left: 0; right: 0; bottom: 0;
+            background-image:
+                linear-gradient(var(--gray) 1px, transparent 1px),
+                linear-gradient(90deg, var(--gray) 1px, transparent 1px);
+            background-size: 80px 80px; opacity: 0.3; pointer-events: none;
+        }
+        .hero-content {
+            position: relative; z-index: 2; max-width: 960px; width: 100%;
+        }
+
+        /* ===== MISSION STATEMENT ===== */
+        .mission-block {
+            display: flex; gap: 0; margin-bottom: 48px;
+        }
+        .mission-label {
+            width: 200px; flex-shrink: 0; padding: 24px 0;
+            font-size: 13px; font-weight: 700; color: var(--gray-dark);
+            letter-spacing: 3px; text-transform: uppercase;
+            border-right: 3px solid var(--black);
+        }
+        .mission-text {
+            flex: 1; padding: 24px 0 24px 32px;
+            font-size: 28px; font-weight: 900; line-height: 1.4;
+            letter-spacing: 2px;
+        }
+        .mission-text .highlight { color: var(--red); }
+        .mission-text .highlight-blue { color: var(--blue); }
+
+        /* ===== THREE PILLARS ===== */
+        .pillars {
+            display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 2px;
+            margin-bottom: 48px;
+        }
+        .pillar {
+            padding: 32px 24px; border: 3px solid var(--black);
+            position: relative; overflow: hidden;
+        }
+        .pillar:nth-child(1) { background: var(--red); color: var(--white); }
+        .pillar:nth-child(2) { background: var(--yellow); color: var(--black); }
+        .pillar:nth-child(3) { background: var(--blue); color: var(--white); }
+        .pillar-number {
+            position: absolute; top: 8px; right: 16px;
+            font-size: 72px; font-weight: 900; opacity: 0.15; line-height: 1;
+        }
+        .pillar-icon {
+            width: 48px; height: 48px; border: 3px solid currentColor;
+            margin-bottom: 20px; display: flex; align-items: center; justify-content: center;
+        }
+        .pillar:nth-child(1) .pillar-icon { border-radius: 50%; }
+        .pillar:nth-child(2) .pillar-icon { transform: rotate(45deg); }
+        .pillar:nth-child(3) .pillar-icon { clip-path: polygon(50% 0%, 0% 100%, 100% 100%); }
+        .pillar h3 {
+            font-size: 16px; font-weight: 900; letter-spacing: 2px;
+            text-transform: uppercase; margin-bottom: 12px;
+        }
+        .pillar p {
+            font-size: 13px; line-height: 1.7; opacity: 0.85;
+            font-weight: 400;
+        }
+
+        /* ===== DATA BAR ===== */
+        .data-bar {
+            display: flex; gap: 2px; margin-bottom: 48px;
+        }
+        .data-item {
+            flex: 1; padding: 20px 24px; background: var(--gray-light);
+            border-left: 3px solid var(--black);
+            text-align: center;
+        }
+        .data-item:first-child { border-left: none; }
+        .data-value {
+            font-size: 36px; font-weight: 900; line-height: 1;
+            margin-bottom: 4px;
+        }
+        .data-item:nth-child(1) .data-value { color: var(--red); }
+        .data-item:nth-child(2) .data-value { color: var(--blue); }
+        .data-item:nth-child(3) .data-value { color: var(--yellow); }
+        .data-item:nth-child(4) .data-value { color: var(--black); }
+        .data-label {
+            font-size: 11px; font-weight: 700; color: var(--gray-dark);
+            letter-spacing: 2px; text-transform: uppercase;
+        }
+
+        /* ===== TRAFFIC ACCIDENT DATA ===== */
+        .traffic-section {
+            margin-bottom: 48px;
+        }
+        .traffic-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 16px 24px; background: var(--black); color: var(--white);
+            border: 3px solid var(--black);
+        }
+        .traffic-header h3 {
+            font-size: 14px; font-weight: 900; letter-spacing: 3px;
+            text-transform: uppercase;
+        }
+        .traffic-source {
+            font-size: 11px; color: var(--gray-dark); font-weight: 600;
+            letter-spacing: 1px;
+        }
+        .traffic-category {
+            margin-top: 2px; border: 3px solid var(--black); border-top: none;
+        }
+        .traffic-cat-label {
+            padding: 14px 24px; background: var(--gray-light);
+            font-size: 16px; font-weight: 900; color: var(--black);
+            letter-spacing: 3px; text-transform: uppercase;
+            border-bottom: 2px solid var(--black);
+        }
+        .traffic-grid {
+            display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 2px;
+        }
+        .traffic-card {
+            padding: 24px 20px; background: var(--white);
+            position: relative; text-align: center;
+        }
+        .traffic-card-accent {
+            position: absolute; top: 0; left: 0; width: 4px; height: 100%;
+        }
+        .traffic-card:nth-child(1) .traffic-card-accent { background: var(--red); }
+        .traffic-card:nth-child(2) .traffic-card-accent { background: var(--black); }
+        .traffic-card:nth-child(3) .traffic-card-accent { background: var(--yellow); }
+        .traffic-card:nth-child(4) .traffic-card-accent { background: var(--blue); }
+        .traffic-card-type {
+            font-size: 11px; font-weight: 700; color: var(--gray-dark);
+            letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px;
+        }
+        .traffic-card-value {
+            font-size: 15px; font-weight: 700; color: var(--black);
+            margin-bottom: 16px; line-height: 1.4;
+        }
+        .traffic-card-value strong {
+            font-size: 22px; font-weight: 900;
+        }
+        .traffic-card-daily {
+            font-size: 42px; font-weight: 900; line-height: 1;
+            margin-bottom: 4px;
+        }
+        .traffic-card:nth-child(1) .traffic-card-daily { color: var(--red); }
+        .traffic-card:nth-child(2) .traffic-card-daily { color: var(--black); }
+        .traffic-card:nth-child(3) .traffic-card-daily { color: var(--yellow); }
+        .traffic-card:nth-child(4) .traffic-card-daily { color: var(--blue); }
+        .traffic-card-daily-label {
+            font-size: 13px; font-weight: 900; letter-spacing: 2px;
+        }
+        .traffic-card:nth-child(1) .traffic-card-daily-label { color: var(--red); }
+        .traffic-card:nth-child(2) .traffic-card-daily-label { color: var(--black); }
+        .traffic-card:nth-child(3) .traffic-card-daily-label { color: #C9A020; }
+        .traffic-card:nth-child(4) .traffic-card-daily-label { color: var(--blue); }
+
+        .traffic-car-section {
+            margin-top: 2px; border: 3px solid var(--black); border-top: none;
+        }
+        .traffic-car-section .traffic-grid .traffic-card {
+            padding: 20px 16px;
+        }
+        .traffic-car-section .traffic-card-value {
+            font-size: 14px; margin-bottom: 12px;
+        }
+        .traffic-car-section .traffic-card-value strong {
+            font-size: 18px;
+        }
+        .traffic-car-section .traffic-card-daily {
+            font-size: 32px;
+        }
+        .traffic-car-section .traffic-card-daily-label {
+            font-size: 12px;
+        }
+
+        /* ===== NEWS / REAL CASES SECTION ===== */
+        .news-section {
+            margin-bottom: 48px;
+        }
+        .news-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 16px 24px; background: var(--red); color: var(--white);
+            border: 3px solid var(--red);
+        }
+        .news-header h3 {
+            font-size: 14px; font-weight: 900; letter-spacing: 3px;
+            text-transform: uppercase;
+        }
+        .news-source {
+            font-size: 11px; opacity: 0.7; font-weight: 600;
+            letter-spacing: 1px;
+        }
+        .news-list {
+            border: 3px solid var(--black); border-top: none;
+        }
+        .news-item {
+            display: flex; gap: 0; border-bottom: 1px solid var(--gray);
+        }
+        .news-item:last-child { border-bottom: none; }
+        .news-item-content {
+            flex: 1; padding: 16px 24px;
+            display: flex; flex-direction: column; justify-content: center;
+        }
+        .news-item-title {
+            font-size: 15px; font-weight: 900; color: var(--black);
+            margin-bottom: 6px; line-height: 1.4;
+        }
+        .news-item-casualty {
+            font-size: 24px; font-weight: 900; color: var(--red);
+            margin-bottom: 4px; letter-spacing: 1px;
+        }
+        .news-item-casualty span {
+            font-size: 14px; font-weight: 700; color: var(--gray-dark);
+        }
+        .news-item-link {
+            font-size: 11px; color: var(--black); font-weight: 600;
+            letter-spacing: 0.5px; margin-top: 4px;
+        }
+        .news-item-link a {
+            color: var(--black); font-weight: 700; text-decoration: none;
+        }
+        .news-item-link a:hover { text-decoration: underline; }
+
+        /* ===== GUARDRAIL INFO SECTION ===== */
+        .guardrail-section {
+            margin-bottom: 48px;
+        }
+        .guardrail-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 16px 24px; background: var(--blue); color: var(--white);
+            border: 3px solid var(--blue);
+        }
+        .guardrail-header h3 {
+            font-size: 14px; font-weight: 900; letter-spacing: 3px;
+            text-transform: uppercase;
+        }
+        .guardrail-source {
+            font-size: 11px; opacity: 0.7; font-weight: 600;
+            letter-spacing: 1px;
+        }
+        .guardrail-intro {
+            padding: 24px; border: 3px solid var(--black); border-top: none;
+            background: var(--white);
+        }
+        .guardrail-intro p {
+            font-size: 15px; line-height: 1.9; color: var(--gray-dark);
+            margin-bottom: 12px;
+        }
+        .guardrail-intro p:last-child { margin-bottom: 0; }
+        .guardrail-intro strong { color: var(--black); font-weight: 900; }
+        .guardrail-intro .highlight-red { color: var(--red); font-weight: 700; }
+        .guardrail-intro .highlight-blue { color: var(--blue); font-weight: 700; }
+        .guardrail-intro .highlight-key { color: var(--red); font-weight: 900; font-size: 17px; }
+        .guardrail-levels-grid {
+            display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 2px;
+            border: 3px solid var(--black); border-top: none;
+        }
+        .guardrail-level-card {
+            padding: 20px 18px; background: var(--white);
+            position: relative; border-right: 1px solid var(--gray);
+        }
+        .guardrail-level-card:last-child { border-right: none; }
+        .glc-code {
+            font-size: 32px; font-weight: 900; color: var(--black);
+            line-height: 1; margin-bottom: 4px;
+        }
+        .glc-energy {
+            font-size: 20px; font-weight: 900; color: var(--red);
+            margin-bottom: 8px;
+        }
+        .glc-bar {
+            height: 4px; background: var(--gray); margin-bottom: 8px;
+            position: relative; overflow: hidden;
+        }
+        .glc-bar-fill {
+            height: 100%; background: var(--red); transition: width 0.3s;
+        }
+        .glc-desc {
+            font-size: 13px; color: var(--gray-dark); line-height: 1.6;
+            font-weight: 400;
+        }
+        .glc-specs {
+            margin-top: 8px; font-size: 12px; color: var(--black);
+            font-weight: 700;
+        }
+        .guardrail-types {
+            border: 3px solid var(--black); border-top: none;
+        }
+        .guardrail-types-grid {
+            display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 2px;
+        }
+        .gt-card {
+            padding: 20px 18px; background: var(--white);
+            border-right: 1px solid var(--gray);
+        }
+        .gt-card:last-child { border-right: none; }
+        .gt-card-name {
+            font-size: 16px; font-weight: 900; color: var(--black);
+            margin-bottom: 8px; letter-spacing: 1px;
+        }
+        .gt-card-represent {
+            font-size: 12px; color: var(--blue); font-weight: 700;
+            letter-spacing: 1px; margin-bottom: 8px;
+        }
+        .gt-card-desc {
+            font-size: 13px; color: var(--gray-dark); line-height: 1.7;
+        }
+        .guardrail-stats {
+            display: flex; gap: 2px;
+            border: 3px solid var(--black); border-top: none;
+        }
+        .gs-item {
+            flex: 1; padding: 16px 20px; background: var(--gray-light);
+            text-align: center;
+        }
+        .gs-value {
+            font-size: 32px; font-weight: 900; color: var(--black);
+            line-height: 1; margin-bottom: 4px;
+        }
+        .gs-label {
+            font-size: 12px; font-weight: 700; color: var(--gray-dark);
+            letter-spacing: 1px; text-transform: uppercase;
+        }
+
+        /* ===== STANDARDS SECTION ===== */
+        .standards-section {
+            display: flex; gap: 2px; margin-bottom: 48px;
+        }
+        .standards-left {
+            width: 280px; flex-shrink: 0; background: var(--black); color: var(--white);
+            padding: 32px 28px;
+        }
+        .standards-left h3 {
+            font-size: 14px; font-weight: 900; letter-spacing: 3px;
+            text-transform: uppercase; margin-bottom: 16px;
+        }
+        .standards-left .line {
+            width: 40px; height: 3px; background: var(--red); margin-bottom: 16px;
+        }
+        .standards-left p {
+            font-size: 12px; line-height: 1.8; opacity: 0.7;
+        }
+        .standards-right {
+            flex: 1; padding: 28px; border: 3px solid var(--black);
+        }
+        .std-item {
+            display: flex; align-items: flex-start; gap: 16px;
+            padding: 14px 0; border-bottom: 1px solid var(--gray);
+        }
+        .std-item:last-child { border-bottom: none; }
+        .std-code {
+            width: 140px; flex-shrink: 0;
+            font-size: 14px; font-weight: 900; color: var(--blue);
+            letter-spacing: 1px;
+        }
+        .std-desc { font-size: 13px; line-height: 1.6; color: var(--gray-dark); }
+
+        /* ===== CTA ===== */
+        .cta-section {
+            display: flex; gap: 2px;
+        }
+        .cta-main {
+            flex: 2; background: var(--red); color: var(--white);
+            padding: 40px 36px; display: flex; align-items: center;
+            justify-content: space-between; text-decoration: none;
+            transition: background 0.2s; cursor: pointer;
+        }
+        .cta-main:hover { background: #A01825; }
+        .cta-main h2 { font-size: 20px; font-weight: 900; letter-spacing: 3px; }
+        .cta-main p { font-size: 13px; opacity: 0.8; margin-top: 4px; }
+        .cta-arrow {
+            width: 48px; height: 48px; border: 3px solid var(--white);
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-size: 20px; flex-shrink: 0;
+        }
+        .cta-sub {
+            flex: 1; background: var(--blue); color: var(--white);
+            padding: 40px 28px; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; text-align: center;
+            text-decoration: none; transition: background 0.2s; cursor: pointer;
+        }
+        .cta-sub:hover { background: #142D5A; }
+        .cta-sub h3 { font-size: 14px; font-weight: 900; letter-spacing: 2px; }
+        .cta-sub p { font-size: 12px; opacity: 0.7; margin-top: 4px; }
+
+        /* ===== FOOTER ===== */
+        .footer {
+            padding: 32px; border-top: 3px solid var(--black);
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: 11px; font-weight: 600; color: var(--gray-dark);
+            letter-spacing: 2px; text-transform: uppercase;
+        }
+        .footer-dots { display: flex; gap: 8px; }
+        .footer-dot {
+            width: 12px; height: 12px;
+        }
+        .footer-dot:nth-child(1) { background: var(--red); }
+        .footer-dot:nth-child(2) { background: var(--yellow); }
+        .footer-dot:nth-child(3) { background: var(--blue); }
+
+        @media (max-width: 768px) {
+            .pillars { grid-template-columns: 1fr; }
+            .data-bar { flex-wrap: wrap; }
+            .data-item { flex: 1 1 45%; }
+            .mission-block { flex-direction: column; }
+            .mission-label { width: 100%; border-right: none; border-bottom: 3px solid var(--black); padding: 12px 0; }
+            .mission-text { padding: 20px 0 0 0; font-size: 22px; }
+            .standards-section { flex-direction: column; }
+            .cta-section { flex-direction: column; }
+            .nav { padding: 0 16px; }
+            .traffic-grid { grid-template-columns: 1fr 1fr; }
+            .traffic-card-daily { font-size: 32px; }
+            .traffic-car-section .traffic-card-daily { font-size: 26px; }
+            .news-section .news-item { flex-direction: column; }
+            .guardrail-levels-grid { grid-template-columns: 1fr 1fr; }
+            .guardrail-types-grid { grid-template-columns: 1fr; }
+            .guardrail-stats { flex-wrap: wrap; }
+            .gs-item { flex: 1 1 45%; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+    <div class="nav-left">
+        <div class="nav-logo"><div class="nav-logo-inner"></div></div>
+        <span class="nav-title">护栏安全设计系统</span>
+        <span class="nav-version">v4.1</span>
+    </div>
+    <div class="nav-links">
+        <a class="nav-link active" href="/">首页</a>
+        <a class="nav-link" href="/map">气候地图</a>
+        <a class="nav-link" href="/history">模拟记录</a>
+        <a class="nav-link" href="/chat">AI 助手</a>
+    </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+    <div class="hero-grid"></div>
+    <div class="hero-content">
+
+        <!-- Mission -->
+        <div class="mission-block">
+            <div class="mission-label">项目宗旨</div>
+            <div class="mission-text">
+                基于地方<span class="highlight">气温</span>与<span class="highlight-blue">降水</span>数据，<br>
+                计算不同路面环境下应采用的<br>
+                <span class="highlight">国标护栏等级</span>，确保行车安全
+            </div>
+        </div>
+
+        <!-- Three Pillars -->
+        <div class="pillars">
+            <div class="pillar">
+                <div class="pillar-number">01</div>
+                <div class="pillar-icon"></div>
+                <h3>气候数据分析</h3>
+                <p>全国 285 个气象监测站点的月度气温与降水数据，自动评估路面潮湿、结冰、积雪风险等级</p>
+            </div>
+            <div class="pillar">
+                <div class="pillar-number">02</div>
+                <div class="pillar-icon"></div>
+                <h3>碰撞模拟引擎</h3>
+                <p>基于 JTG B01-2014 与 GB 50688-2011 标准，模拟 8 种路面条件下的车辆碰撞护栏全过程</p>
+            </div>
+            <div class="pillar">
+                <div class="pillar-number">03</div>
+                <div class="pillar-icon"></div>
+                <h3>国标护栏选型</h3>
+                <p>从 B 级到 HB 级共 6 个防护等级，根据碰撞能量计算结果智能推荐最优护栏方案</p>
+            </div>
+        </div>
+
+        <!-- Data Bar -->
+        <div class="data-bar">
+            <div class="data-item">
+                <div class="data-value">285</div>
+                <div class="data-label">监测站点</div>
+            </div>
+            <div class="data-item">
+                <div class="data-value">31</div>
+                <div class="data-label">覆盖省份</div>
+            </div>
+            <div class="data-item">
+                <div class="data-value">8</div>
+                <div class="data-label">路面类型</div>
+            </div>
+            <div class="data-item">
+                <div class="data-value">6</div>
+                <div class="data-label">护栏等级</div>
+            </div>
+        </div>
+
+        <!-- Traffic Accident Data -->
+        <div class="traffic-section">
+            <div class="traffic-header">
+                <h3>中国交通事故数据</h3>
+                <span class="traffic-source">数据来源：国家统计局（2024年度）</span>
+            </div>
+
+            <!-- 机动车 -->
+            <div class="traffic-category">
+                <div class="traffic-cat-label">机动车交通事故</div>
+                <div class="traffic-grid">
+                    <div class="traffic-card">
+                        <div class="traffic-card-accent"></div>
+                        <div class="traffic-card-type">事故发生</div>
+                        <div class="traffic-card-value">年度 <strong>212,450</strong> 起</div>
+                        <div class="traffic-card-daily">582</div>
+                        <div class="traffic-card-daily-label">起 / 天</div>
+                    </div>
+                    <div class="traffic-card">
+                        <div class="traffic-card-accent"></div>
+                        <div class="traffic-card-type">死亡人数</div>
+                        <div class="traffic-card-value">年度 <strong>51,988</strong> 人</div>
+                        <div class="traffic-card-daily">142</div>
+                        <div class="traffic-card-daily-label">人 / 天</div>
+                    </div>
+                    <div class="traffic-card">
+                        <div class="traffic-card-accent"></div>
+                        <div class="traffic-card-type">受伤人数</div>
+                        <div class="traffic-card-value">年度 <strong>199,973</strong> 人</div>
+                        <div class="traffic-card-daily">548</div>
+                        <div class="traffic-card-daily-label">人 / 天</div>
+                    </div>
+                    <div class="traffic-card">
+                        <div class="traffic-card-accent"></div>
+                        <div class="traffic-card-type">直接财产损失</div>
+                        <div class="traffic-card-value">年度 <strong>121,725</strong> 万元</div>
+                        <div class="traffic-card-daily">333</div>
+                        <div class="traffic-card-daily-label">万元 / 天</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 汽车 -->
+            <div class="traffic-car-section">
+                <div class="traffic-cat-label">汽车交通事故</div>
+                <div class="traffic-grid">
+                    <div class="traffic-card">
+                        <div class="traffic-card-accent"></div>
+                        <div class="traffic-card-type">事故发生</div>
+                        <div class="traffic-card-value">年度 <strong>150,054</strong> 起</div>
+                        <div class="traffic-card-daily">411</div>
+                        <div class="traffic-card-daily-label">起 / 天</div>
+                    </div>
+                    <div class="traffic-card">
+                        <div class="traffic-card-accent"></div>
+                        <div class="traffic-card-type">死亡人数</div>
+                        <div class="traffic-card-value">年度 <strong>40,631</strong> 人</div>
+                        <div class="traffic-card-daily">111</div>
+                        <div class="traffic-card-daily-label">人 / 天</div>
+                    </div>
+                    <div class="traffic-card">
+                        <div class="traffic-card-accent"></div>
+                        <div class="traffic-card-type">受伤人数</div>
+                        <div class="traffic-card-value">年度 <strong>129,850</strong> 人</div>
+                        <div class="traffic-card-daily">356</div>
+                        <div class="traffic-card-daily-label">人 / 天</div>
+                    </div>
+                    <div class="traffic-card">
+                        <div class="traffic-card-accent"></div>
+                        <div class="traffic-card-type">直接财产损失</div>
+                        <div class="traffic-card-value">年度 <strong>104,345</strong> 万元</div>
+                        <div class="traffic-card-daily">286</div>
+                        <div class="traffic-card-daily-label">万元 / 天</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Real Cases — News -->
+        <div class="news-section">
+            <div class="news-header">
+                <h3>护栏相关重大交通事故案例</h3>
+                <span class="news-source">数据来源：央视网 / 人民网 / 网易新闻</span>
+            </div>
+            <div class="news-list">
+                <div class="news-item">
+                    <div class="news-item-content">
+                        <div class="news-item-title">沈海高速江苏盐城段重大交通事故（2021年4月）</div>
+                        <div class="news-item-casualty"><span>伤亡情况：</span>11人死亡，19人受伤</div>
+                        <div class="news-item-link">权威来源：<a href="https://tv.cctv.com/2021/04/04/VIDEepKVMvRTzmXIi2r2BcpC210404.shtml" target="_blank">央视网报道</a></div>
+                    </div>
+                </div>
+                <div class="news-item">
+                    <div class="news-item-content">
+                        <div class="news-item-title">福诏高速永泰段轿车冲破护栏事故（2016年6月）</div>
+                        <div class="news-item-casualty"><span>伤亡情况：</span>3人当场死亡，2人受伤</div>
+                        <div class="news-item-link">权威来源：<a href="http://fj.people.com.cn/big5/n2/2016/0605/c234960-28458340.html" target="_blank">人民网（福建频道）报道</a></div>
+                    </div>
+                </div>
+                <div class="news-item">
+                    <div class="news-item-content">
+                        <div class="news-item-title">京沪高速大客车为避让轿车冲破护栏翻车（2016年8月）</div>
+                        <div class="news-item-casualty"><span>伤亡情况：</span>2人死亡，多人受伤</div>
+                        <div class="news-item-link">权威来源：<a href="http://news.163.com/16/0830/17/BVO08AH100014JB6.html" target="_blank">网易新闻报道</a></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Guardrail Knowledge -->
+        <div class="guardrail-section">
+            <div class="guardrail-header">
+                <h3>防撞护栏技术详解</h3>
+                <span class="guardrail-source">数据来源：GB 50688-2011 / DB11/844-2012</span>
+            </div>
+
+            <!-- Introduction -->
+            <div class="guardrail-intro">
+                <p><strong>防撞护栏</strong>是一种纵向结构设施，通过<strong>自身变形</strong>或<strong>迫使车辆爬高</strong>来吸收车辆的碰撞能量，以达到最大限度减少事故损失的目的。其核心功能包括：</p>
+                <p>① <strong>阻止事故车辆越出路外</strong>或进入对向车道 &nbsp; ② <strong>使事故车辆回到正常行驶方向</strong> &nbsp; ③ 最大限度地<strong>减少乘员的伤亡</strong> &nbsp; ④ <strong>诱导驾驶员的视线</strong></p>
+                <p>据统计，车辆与中央分隔带护栏接触、冲撞、爬上甚至冲断护栏的事故，占总事故的 <span class="highlight-red">22%~25%</span>。其中 <strong>50%</strong> 发生在路基护栏与桥梁护栏的<span class="highlight-blue">过渡段</span>上。<span class="highlight-key">如果能提供可靠的能阻止撞击护栏的汽车掉下悬崖的对应护栏</span>，<strong>80%</strong> 的失控车辆能够自行恢复安全行驶。</p>
+                <p>我国 2019 年修订版 GB 50688-2011 新增了 <strong>HB 级（640 kJ）</strong>超高防护等级，以适应城市大型公交车（总质量 >18t）增多的现状，目前美国、日本道路护栏设计防护能量最高值分别为 <strong>548 kJ</strong>、<strong>650 kJ</strong>，我国已与发达国家水平保持一致。</p>
+            </div>
+
+            <!-- 6 Levels Grid -->
+            <div class="guardrail-levels-grid">
+                <div class="guardrail-level-card">
+                    <div class="glc-code">B</div>
+                    <div class="glc-energy">70 kJ</div>
+                    <div class="glc-bar"><div class="glc-bar-fill" style="width:10.9%"></div></div>
+                    <div class="glc-desc">路侧最低防护等级。小客车 60km/h、大客车 40km/h 碰撞测试。</div>
+                    <div class="glc-specs">1.5t@60km/h / 10t@40km/h</div>
+                </div>
+                <div class="guardrail-level-card">
+                    <div class="glc-code">A</div>
+                    <div class="glc-energy">160 kJ</div>
+                    <div class="glc-bar"><div class="glc-bar-fill" style="width:25%"></div></div>
+                    <div class="glc-desc">一般路段常用等级。一般公路、城市主干路标准配置。</div>
+                    <div class="glc-specs">1.5t@100km/h / 10t@60km/h</div>
+                </div>
+                <div class="guardrail-level-card">
+                    <div class="glc-code">SB</div>
+                    <div class="glc-energy">280 kJ</div>
+                    <div class="glc-bar"><div class="glc-bar-fill" style="width:43.8%"></div></div>
+                    <div class="glc-desc">危险路段使用。高边坡、小半径曲线外侧、连续下坡路段。</div>
+                    <div class="glc-specs">1.5t@100km/h / 10t@80km/h</div>
+                </div>
+                <div class="guardrail-level-card">
+                    <div class="glc-code">SA</div>
+                    <div class="glc-energy">400 kJ</div>
+                    <div class="glc-bar"><div class="glc-bar-fill" style="width:62.5%"></div></div>
+                    <div class="glc-desc">高危险路段。临河、临湖、桥梁高度 6~20m、跨线桥等。</div>
+                    <div class="glc-specs">1.5t@100km/h / 14t@80km/h</div>
+                </div>
+                <div class="guardrail-level-card">
+                    <div class="glc-code">SS</div>
+                    <div class="glc-energy">520 kJ</div>
+                    <div class="glc-bar"><div class="glc-bar-fill" style="width:81.3%"></div></div>
+                    <div class="glc-desc">极高危险路段。桥梁 >20m、跨越高速公路、水库油库电站。</div>
+                    <div class="glc-specs">1.5t@100km/h / 18t@80km/h</div>
+                </div>
+                <div class="guardrail-level-card">
+                    <div class="glc-code">HB</div>
+                    <div class="glc-energy">640 kJ</div>
+                    <div class="glc-bar"><div class="glc-bar-fill" style="width:100%"></div></div>
+                    <div class="glc-desc">超高防护等级（城市道路新增）。25t 重型货车碰撞测试标准。</div>
+                    <div class="glc-specs">1.5t@100km/h / 25t@80km/h</div>
+                </div>
+            </div>
+
+            <!-- 3 Types -->
+            <div class="guardrail-types">
+                <div class="guardrail-types-grid">
+                    <div class="gt-card">
+                        <div class="gt-card-name">刚性护栏</div>
+                        <div class="gt-card-represent">代表形式：混凝土护栏</div>
+                        <div class="gt-card-desc">车辆碰撞后基本不变形，主要通过车辆爬高和转向来吸收碰撞能量。中央分隔带护栏宜优先采用。</div>
+                    </div>
+                    <div class="gt-card">
+                        <div class="gt-card-name">半刚性护栏</div>
+                        <div class="gt-card-represent">代表形式：波形梁 / 金属梁柱式</div>
+                        <div class="gt-card-desc">碰撞后有一定变形又保持强度，通过基础、立柱、钢板的变形吸收碰撞能量。公路最常用型式。</div>
+                    </div>
+                    <div class="gt-card">
+                        <div class="gt-card-name">组合式护栏</div>
+                        <div class="gt-card-represent">代表形式：钢混组合护栏</div>
+                        <div class="gt-card-desc">由两种不同形式护栏组合而成，结合不同形式护栏的优点。桥梁护栏常采用金属梁柱+钢筋混凝土墙式组合。</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Key Stats -->
+            <div class="guardrail-stats">
+                <div class="gs-item">
+                    <div class="gs-value">6</div>
+                    <div class="gs-label">国标防护等级</div>
+                </div>
+                <div class="gs-item">
+                    <div class="gs-value">70~640</div>
+                    <div class="gs-label">防护能量范围 kJ</div>
+                </div>
+                <div class="gs-item">
+                    <div class="gs-value">20°</div>
+                    <div class="gs-label">标准碰撞角度</div>
+                </div>
+                <div class="gs-item">
+                    <div class="gs-value">80%</div>
+                    <div class="gs-label">失控车可自行恢复</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Standards -->
+        <div class="standards-section">
+            <div class="standards-left">
+                <h3>参考标准</h3>
+                <div class="line"></div>
+                <p>
+                    严格遵循国家及行业标准进行护栏设计与碰撞模拟计算。所有路面附着系数、碰撞能量阈值均来自权威标准文件。
+                </p>
+            </div>
+            <div class="standards-right">
+                <div class="std-item">
+                    <div class="std-code">JTG B01-2014</div>
+                    <div class="std-desc">公路工程技术标准 — 路面附着系数、设计速度分级</div>
+                </div>
+                <div class="std-item">
+                    <div class="std-code">GB 50688-2011</div>
+                    <div class="std-desc">城市道路交通设施设计规范(2019年版) — 护栏碰撞条件表7.2.1、防护等级B~HB</div>
+                </div>
+                <div class="std-item">
+                    <div class="std-code">DB11/844-2012</div>
+                    <div class="std-desc">公路护栏设置规范 — 路基/桥梁护栏设置原则、桥梁防撞等级适用条件</div>
+                </div>
+                <div class="std-item">
+                    <div class="std-code">JTG D81</div>
+                    <div class="std-desc">公路交通安全设施设计规范 — 护栏型式选择与构造要求</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CTA -->
+        <div class="cta-section">
+            <a class="cta-main" href="/map">
+                <div>
+                    <h2>开始分析 →</h2>
+                    <p>选择省份 · 查看气候数据 · 运行碰撞模拟</p>
+                </div>
+                <div class="cta-arrow">→</div>
+            </a>
+            <a class="cta-sub" href="/chat">
+                <h3>AI 护栏顾问</h3>
+                <p>智能选型 · 国标解读</p>
+            </a>
+        </div>
+
+    </div>
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+    <span>道路护栏安全设计系统 v4.1</span>
+    <div class="footer-dots">
+        <div class="footer-dot"></div>
+        <div class="footer-dot"></div>
+        <div class="footer-dot"></div>
+    </div>
+    <span>BAUHAUS DESIGN</span>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,846 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Cache-Control" content="no-cache">
+    <title>气候地图 — 道路护栏安全设计系统</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@4/map/js/china.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --black: #1A1A1A;--white: #FAFAFA; --gray: #E8E4DE;--gray-dark: #8C8780;--gray-light: #F2F0EC; --border: #dcdfe6; --border: #D5D0C8;
+            --text: #1A1A1A; --text-secondary: #8C8780; --text-dim: #8C8780;
+            --red: #BE1E2D;--yellow: #F5C518;--blue: #1B3B6F;
+            --bg: #FAFAFA; --bg-panel: #F2F0EC; --border-dark: #1A1A1A;
+            --accent-green: #F5C518; --accent-green-dim: rgba(245,197,24,0.08); --accent-green-glow: rgba(245,197,24,0.15);
+            --accent-blue: #1B3B6F; --accent-blue-dim: rgba(27,59,111,0.08);
+            --accent-red: #BE1E2D; --accent-yellow: #F5C518;
+        }
+        body {
+            font-family: "Noto Sans SC", "Helvetica Neue", Helvetica, Arial, sans-serif;
+            background: var(--white); color: var(--black); min-height: 100vh;
+            font-size: 14px; font-weight: 450; -webkit-font-smoothing: antialiased;
+        }
+        /* ===== HEADER ===== */
+        .header {
+            height: 56px; padding: 0 32px; display: flex; align-items: center; justify-content: space-between;
+            background: var(--white); border-bottom: 3px solid var(--black);
+        }
+        .header-left { display: flex; align-items: center; gap: 12px; }
+        .nav-logo { width: 28px; height: 28px; background: var(--red); border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+        .nav-logo-inner { width: 14px; height: 14px; background: var(--yellow); border-radius: 50%; }
+        .header h1 { font-size: 15px; font-weight: 900; letter-spacing: 2px; color: var(--black); text-transform: uppercase; }
+        .header .version { font-size: 11px; font-weight: 700; color: var(--gray-dark); background: var(--gray-light); padding: 3px 8px; letter-spacing: 1px; }
+        .nav-links { display: flex; gap: 2px; margin-left: 12px; }
+        .nav-link {
+            padding: 7px 16px; font-size: 12px; font-weight: 700; text-decoration: none;
+            color: var(--black); letter-spacing: 1px; text-transform: uppercase;
+            border: 2px solid transparent; transition: all 0.15s; cursor: pointer;
+        }
+        .nav-link:hover { background: var(--gray-light); }
+        .nav-link.active { background: var(--black); color: var(--white); }
+
+        /* ===== CONTROLS ===== */
+        .controls {
+            display: flex; align-items: center; gap: 14px; padding: 10px 32px;
+            background: var(--gray-light); border-bottom: 2px solid var(--border);
+            flex-wrap: wrap;
+        }
+        .search-box {
+            flex: 1; max-width: 360px; padding: 7px 14px; background: var(--white);
+            border: 2px solid var(--black); font-size: 13px; outline: none; font-family: inherit;
+        }
+        .search-box:focus { border-color: var(--red); }
+        .search-box::placeholder { color: var(--gray-dark); }
+        .month-select {
+            padding: 7px 12px; background: var(--white); border: 2px solid var(--black);
+            font-size: 13px; outline: none; font-family: inherit; cursor: pointer;
+        }
+        .month-select:focus { border-color: var(--red); }
+        .mode-switch {
+            display: flex; border: 2px solid var(--black); overflow: hidden;
+        }
+        .mode-btn {
+            padding: 10px 24px; font-size: 14px; font-weight: 900; border: none;
+            background: transparent; color: var(--gray-dark); cursor: pointer;
+            font-family: inherit; letter-spacing: 2px; text-transform: uppercase; transition: all 0.15s;
+        }
+        .mode-btn.active { background: var(--blue); color: var(--white); }
+        .mode-btn:hover:not(.active) { background: var(--gray-light); }
+        .mode-btn.active-temp { background: var(--red); color: var(--white); }
+        .data-source-note {
+            font-size: 11px; color: var(--gray-dark); font-weight: 600;
+            letter-spacing: 1px; margin-left: auto;
+        }
+
+        /* ===== MAIN LAYOUT ===== */
+        .main-wrap {
+            display: flex; height: calc(100vh - 56px - 44px);
+        }
+
+        /* ===== LEFT PANEL (省份+站点列表) ===== */
+        .left-sidebar {
+            width: 300px; min-width: 260px; max-width: 360px;
+            background: var(--gray-light); border-right: 3px solid var(--black);
+            overflow-y: auto; flex-shrink: 0; display: flex; flex-direction: column;
+        }
+        .ls-header {
+            padding: 10px 16px; border-bottom: 1px solid var(--border);
+            background: #f8f9fb; display: flex; align-items: center; justify-content: space-between;
+            position: sticky; top: 0; z-index: 5;
+        }
+        .ls-title { font-size: 13px; font-weight: 600; color: var(--text-secondary); letter-spacing: 2px; }
+        .ls-collapse-all {
+            background: none; border: 1px solid var(--border); padding: 3px 10px;
+            font-size: 11px; color: var(--text-dim); cursor: pointer; font-family: inherit;
+            border-radius: 3px; transition: all 0.2s;
+        }
+        .ls-collapse-all:hover { color: var(--text); border-color: var(--text-dim); }
+
+        /* 省份项 */
+        .ls-province {
+            border-bottom: 1px solid #f0f1f4; cursor: pointer; transition: background 0.15s;
+        }
+        .ls-province:hover { background: var(--white); }
+        .ls-province.active { background: var(--yellow); }
+        .ls-prov-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 8px 16px; font-size: 13px; font-weight: 600; color: var(--black);
+        }
+        .ls-prov-arrow {
+            font-size: 10px; color: var(--gray-dark); transition: transform 0.2s;
+        }
+        .ls-province.open .ls-prov-arrow { transform: rotate(90deg); }
+        .ls-prov-info {
+            font-size: 11px; color: var(--gray-dark); margin-left: 8px; font-weight: 400;
+        }
+
+        /* 站点列表 */
+        .ls-stations { display: none; }
+        .ls-province.open .ls-stations { display: block; }
+        .ls-station {
+            padding: 6px 16px 6px 28px; font-size: 12px; cursor: pointer;
+            border-top: 1px solid #f5f6f9; transition: background 0.1s;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .ls-station:hover { background: #f0f2f6; }
+        .ls-station.active { background: var(--accent-blue-dim); color: var(--accent-blue); font-weight: 600; }
+        .ls-station-temp { font-size: 11px; font-weight: 500; }
+        .ls-station-temp.cold { color: #1565c0; }
+        .ls-station-temp.hot { color: #e53935; }
+
+        /* ===== MAP ===== */
+        .map-area { flex: 1; height: 100%; min-width: 0; position: relative; }
+        #mapChart { width: 100%; height: 100%; }
+
+        /* ===== RIGHT PANEL (站点详细数据) ===== */
+        .right-panel {
+            position: absolute; top: 0; right: 0; bottom: 0;
+            width: 400px; max-width: 90vw;
+            background: rgba(255,255,255,0.96); backdrop-filter: blur(8px);
+            border-left: 1px solid var(--border-dark);
+            overflow-y: auto; display: none;
+            z-index: 50; box-shadow: -4px 0 20px rgba(0,0,0,0.08);
+        }
+        .right-panel.show { display: block; }
+        .rp-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 12px 16px; border-bottom: 1px solid var(--border);
+            background: #f8f9fb; position: sticky; top: 0; z-index: 2;
+        }
+        .rp-title { font-size: 15px; font-weight: 700; color: var(--text); }
+        .rp-close {
+            background: none; border: none; font-size: 18px; cursor: pointer;
+            color: var(--text-dim); font-family: inherit; padding: 2px 6px;
+        }
+        .rp-close:hover { color: var(--text); background: var(--bg); border-radius: 3px; }
+
+        /* 站点详情卡片 */
+        .rp-section { padding: 12px 16px; border-bottom: 1px solid var(--border); }
+        .rp-section-title {
+            font-size: 10px; color: var(--text-dim); letter-spacing: 2px;
+            text-transform: uppercase; margin-bottom: 8px; font-weight: 400;
+        }
+        .rp-station-name { font-size: 18px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+        .rp-coords { font-size: 11px; color: var(--text-dim); margin-bottom: 10px; }
+        .rp-data-row { display: flex; gap: 16px; margin-bottom: 6px; }
+        .rp-data-item { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+        .rp-data-label { color: var(--text-secondary); }
+        .rp-data-value { font-weight: 600; }
+        .rp-temp-cold { color: #1565c0; }
+        .rp-temp-hot { color: #e53935; }
+        .rp-month-tag {
+            display: inline-block; padding: 2px 10px; background: rgba(0,200,83,0.08);
+            border: 1px solid rgba(0,200,83,0.2); border-radius: 12px;
+            font-size: 12px; color: var(--accent-green); font-weight: 600;
+        }
+
+        /* 危险指标条 */
+        .rp-danger-bars { display: flex; gap: 8px; margin-top: 4px; flex-wrap: wrap; }
+        .rp-danger-item { display: flex; align-items: center; gap: 5px; }
+        .rp-danger-label { font-size: 11px; color: var(--text-dim); white-space: nowrap; }
+        .rp-danger-bar {
+            width: 56px; height: 12px; border-radius: 2px;
+            display: flex; overflow: hidden;
+        }
+        .rp-danger-fill { height: 100%; border-radius: 2px; transition: width 0.3s; }
+        .rp-danger-fill.green { background: #00c853; }
+        .rp-danger-fill.blue { background: #1976d2; }
+        .rp-danger-fill.cyan { background: #00acc1; }
+
+        /* 路面建议 */
+        .rp-road-advice { padding: 12px 16px; }
+        .rp-advice-title {
+            font-size: 10px; color: var(--text-dim); letter-spacing: 2px;
+            text-transform: uppercase; margin-bottom: 10px; font-weight: 400;
+        }
+        .rp-advice-list { display: flex; flex-direction: column; gap: 6px; }
+        .rp-advice-item {
+            display: flex; align-items: center; gap: 10px; padding: 6px 12px;
+            background: #f5f6f9; border-radius: 3px; font-size: 12px;
+            border-left: 3px solid transparent;
+        }
+        .rp-advice-item.warning { border-left-color: var(--accent-red); }
+        .rp-advice-item.caution { border-left-color: var(--accent-yellow); }
+        .rp-advice-item.ok { border-left-color: var(--accent-green); }
+        .rp-advice-icon { font-size: 14px; flex-shrink: 0; }
+        .rp-advice-name { flex: 1; color: var(--text); font-weight: 500; }
+        .rp-advice-reason { font-size: 11px; color: var(--text-dim); }
+        .rp-advice-adhesion { font-size: 11px; color: var(--text-secondary); font-weight: 600; white-space: nowrap; }
+
+        /* 省份详情按钮 */
+        .rp-prov-btn-wrap { padding: 12px 16px; border-bottom: 1px solid var(--border); display: none; }
+        .rp-prov-btn-wrap.show { display: block; }
+        .btn-province-detail {
+            width: 100%; padding: 10px; border: 1px solid var(--accent-green);
+            background: var(--accent-green-dim); color: var(--accent-green);
+            font-size: 13px; font-weight: 600; cursor: pointer;
+            letter-spacing: 2px; text-transform: uppercase; font-family: inherit;
+            transition: all 0.2s; border-radius: 3px; text-decoration: none; display: block; text-align: center;
+        }
+        .btn-province-detail:hover { background: var(--accent-green); color: #fff; }
+
+        /* ===== LEGEND ===== */
+        .legend {
+            position: absolute; bottom: 20px; left: 20px; background: rgba(255,255,255,0.95);
+            border: 1px solid var(--border); border-radius: 4px; padding: 14px 18px; z-index: 10;
+        }
+        .legend-title { font-size: 11px; color: var(--text-dim); letter-spacing: 2px; margin-bottom: 8px; }
+        .legend-bar { width: 200px; height: 12px; border-radius: 2px; margin-bottom: 6px; }
+        .legend-range { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-secondary); }
+
+        /* ===== TOAST ===== */
+        .toast {
+            position: fixed; top: 60px; left: 50%; transform: translateX(-50%);
+            padding: 10px 24px; background: #333; color: #fff; font-size: 13px;
+            border-radius: 4px; z-index: 1000; display: none;
+        }
+        .toast.show { display: block; animation: fadeInOut 2s ease; }
+        @keyframes fadeInOut { 0% { opacity: 0; } 15% { opacity: 1; } 85% { opacity: 1; } 100% { opacity: 0; } }
+
+        /* 搜索结果提示 */
+        .search-hint {
+            position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
+            padding: 6px 16px; background: rgba(0,0,0,0.7); color: #fff; font-size: 12px;
+            border-radius: 4px; z-index: 15; display: none; white-space: nowrap;
+        }
+        .search-hint.show { display: block; }
+
+        /* ===== SCROLLBAR ===== */
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: var(--bg); }
+        ::-webkit-scrollbar-thumb { background: var(--border-dark); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+    </style>
+</head>
+<body>
+
+<header class="header">
+    <div class="header-left">
+        <div class="nav-logo"><div class="nav-logo-inner"></div></div>
+        <h1>护栏安全设计系统</h1>
+        <span class="version">v4.1</span>
+        <div class="nav-links">
+            <a class="nav-link" href="/">首页</a>
+            <a class="nav-link active" href="/map">气候地图</a>
+            <a class="nav-link" href="/simulator">碰撞模拟</a>
+            <a class="nav-link" href="/history">模拟记录</a>
+            <a class="nav-link" href="/chat">AI 助手</a>
+        </div>
+    </div>
+</header>
+
+<div class="controls">
+    <input type="text" class="search-box" id="searchInput" placeholder="输入城市名称搜索（无匹配时使用最近站点）..." />
+    <select class="month-select" id="monthSelect"></select>
+    <div class="mode-switch">
+        <button class="mode-btn active" id="btnPrecip" onclick="switchMode('precip')">降水</button>
+        <button class="mode-btn" id="btnTemp" onclick="switchMode('temp')">气温</button>
+    </div>
+    <span class="data-source-note">数据来源：中国气象数据网</span>
+</div>
+
+<div class="main-wrap">
+    <!-- ===== LEFT: 省份+站点列表 ===== -->
+    <div class="left-sidebar" id="leftSidebar">
+        <div class="ls-header">
+            <span class="ls-title">省份 / 站点</span>
+            <button class="ls-collapse-all" onclick="toggleAllProvinces()">全部展开/折叠</button>
+        </div>
+        <div id="provinceList"></div>
+    </div>
+
+    <!-- ===== CENTER: 地图 ===== -->
+    <div class="map-area">
+        <div id="mapChart"></div>
+        <div class="legend" id="legendBox">
+            <div class="legend-title" id="legendTitle">月降水量 (mm)</div>
+            <div class="legend-bar" id="legendBar"></div>
+            <div class="legend-range">
+                <span id="legendMin">0</span>
+                <span id="legendMax">300</span>
+            </div>
+        </div>
+        <div class="search-hint" id="searchHint"></div>
+
+        <!-- ===== RIGHT: 站点详细数据 (覆盖在地图上方) ===== -->
+        <div class="right-panel" id="rightPanel">
+            <div class="rp-header">
+                <span class="rp-title" id="rpTitle">站点详情</span>
+                <button class="rp-close" onclick="closeRightPanel()">&times;</button>
+            </div>
+            <div id="rpContent"></div>
+            <div class="rp-prov-btn-wrap" id="rpProvBtn">
+                <a class="btn-province-detail" id="btnProvinceDetail" href="#">查看省份详情信息</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let climateData = null;
+let currentMode = 'precip';
+let currentMonth = new Date().getMonth() + 1;
+let selectedProvince = null;
+let selectedStation = null;
+let mapChart = null;
+let allExpanded = false;
+
+// 八种路面数据
+const ROAD_TYPES = [
+    { key: 'dry_new_tire', name: '干燥路面(新轮胎)', adhesion: 0.85 },
+    { key: 'dry_concrete', name: '干燥水泥路面', adhesion: 0.75 },
+    { key: 'dry_asphalt', name: '干燥沥青路面', adhesion: 0.7 },
+    { key: 'wet_concrete', name: '潮湿水泥路面', adhesion: 0.45 },
+    { key: 'wet_asphalt', name: '潮湿沥青路面', adhesion: 0.4 },
+    { key: 'gravel', name: '砂石路面', adhesion: 0.35 },
+    { key: 'snow', name: '积雪路面', adhesion: 0.2 },
+    { key: 'ice', name: '结冰路面', adhesion: 0.1 },
+];
+
+// ECharts省份名称映射
+const PROV_ALIAS = {
+    '北京': '北京', '天津': '天津', '上海': '上海', '重庆': '重庆',
+    '河北': '河北', '山西': '山西', '辽宁': '辽宁', '吉林': '吉林', '黑龙江': '黑龙江',
+    '江苏': '江苏', '浙江': '浙江', '安徽': '安徽', '福建': '福建', '江西': '江西', '山东': '山东',
+    '河南': '河南', '湖北': '湖北', '湖南': '湖南', '广东': '广东', '海南': '海南',
+    '四川': '四川', '贵州': '贵州', '云南': '云南', '陕西': '陕西', '甘肃': '甘肃',
+    '青海': '青海', '台湾': '台湾', '内蒙古': '内蒙古', '广西': '广西', '西藏': '西藏',
+    '宁夏': '宁夏', '新疆': '新疆', '香港': '香港', '澳门': '澳门', '南海诸岛': '南海诸岛'
+};
+
+// 搜索别名
+const SEARCH_ALIAS = {
+    '京': '北京', '沪': '上海', '渝': '重庆', '津': '天津',
+    '粤': '广东', '川': '四川', '蜀': '四川', '滇': '云南', '云': '云南',
+    '黔': '贵州', '贵': '贵州', '湘': '湖南', '鄂': '湖北', '赣': '江西',
+    '闽': '福建', '皖': '安徽', '浙': '浙江', '苏': '江苏', '鲁': '山东',
+    '豫': '河南', '冀': '河北', '晋': '山西', '陕': '陕西', '秦': '陕西',
+    '甘': '甘肃', '陇': '甘肃', '青': '青海', '琼': '海南',
+    '新': '新疆', '藏': '西藏', '蒙': '内蒙古', '桂': '广西', '宁': '宁夏',
+    '辽': '辽宁', '吉': '吉林', '黑': '黑龙江',
+};
+
+// 常用城市坐标
+const CITY_COORDS = {
+    '北京': [39.9, 116.4], '上海': [31.2, 121.5], '广州': [23.1, 113.3],
+    '深圳': [22.5, 114.1], '成都': [30.6, 104.1], '重庆': [29.6, 106.5],
+    '杭州': [30.3, 120.2], '武汉': [30.6, 114.3], '南京': [32.1, 118.8],
+    '天津': [39.1, 117.2], '西安': [34.3, 108.9], '长沙': [28.2, 113.0],
+    '沈阳': [41.8, 123.4], '哈尔滨': [45.8, 126.5], '大连': [38.9, 121.6],
+    '青岛': [36.1, 120.4], '郑州': [34.7, 113.6], '厦门': [24.5, 118.1],
+    '济南': [36.7, 117.0], '福州': [26.1, 119.3], '合肥': [31.8, 117.3],
+    '昆明': [25.0, 102.7], '贵阳': [26.6, 106.7], '南宁': [22.8, 108.3],
+    '乌鲁木齐': [43.8, 87.6], '拉萨': [29.6, 91.1], '兰州': [36.1, 103.8],
+    '太原': [37.9, 112.5], '石家庄': [38.0, 114.5], '呼和浩特': [40.8, 111.7],
+    '长春': [43.9, 125.3], '银川': [38.5, 106.3], '西宁': [36.6, 101.8],
+    '海口': [20.0, 110.3], '三亚': [18.3, 109.5], '苏州': [31.3, 120.6],
+    '无锡': [31.6, 120.3], '宁波': [29.9, 121.6], '温州': [28.0, 120.7],
+    '东莞': [23.0, 113.7], '佛山': [23.0, 113.1], '珠海': [22.3, 113.6],
+    '中山': [22.5, 113.4], '惠州': [23.1, 114.4], '烟台': [37.5, 121.4],
+    '常州': [31.8, 119.9], '南通': [32.0, 120.9], '徐州': [34.3, 117.2],
+    '保定': [38.9, 115.5], '唐山': [39.6, 118.2], '廊坊': [39.5, 116.7],
+    '洛阳': [34.6, 112.4], '宜昌': [30.7, 111.3], '襄阳': [32.0, 112.1],
+    '芜湖': [31.3, 118.4], '台州': [28.7, 121.4], '绍兴': [30.0, 120.6],
+    '嘉兴': [30.8, 120.8], '金华': [29.1, 119.6], '泉州': [24.9, 118.6],
+    '九江': [29.7, 116.0], '桂林': [25.3, 110.3], '柳州': [24.3, 109.4],
+    '遵义': [27.7, 107.0], '绵阳': [31.5, 104.7], '宜宾': [28.8, 104.6],
+    '包头': [40.7, 110.0], '大同': [40.1, 113.3], '吉林': [43.8, 126.5],
+    '齐齐哈尔': [47.4, 124.0], '牡丹江': [44.6, 129.6], '佳木斯': [46.8, 130.4],
+    '大理': [25.6, 100.2], '丽江': [26.9, 100.2], '赣州': [25.8, 114.9],
+    '景德镇': [29.3, 117.2], '日照': [35.4, 119.5], '威海': [37.5, 122.1],
+    '汕头': [23.4, 116.7], '湛江': [21.3, 110.4], '北海': [21.5, 109.1],
+    '张家界': [29.1, 110.5], '延安': [36.6, 109.5], '天水': [34.6, 105.7],
+    '泸州': [28.9, 105.4], '曲靖': [25.5, 103.8], '秦皇岛': [39.9, 119.6],
+    '邯郸': [36.6, 114.5],
+};
+
+const MONTH_NAMES = ['', '一月', '二月', '三月', '四月', '五月', '六月',
+                     '七月', '八月', '九月', '十月', '十一月', '十二月'];
+
+// ===== 初始化月份选择器 =====
+function initMonthSelect() {
+    const sel = document.getElementById('monthSelect');
+    const now = new Date();
+    currentMonth = now.getMonth() + 1;
+    for (let m = 1; m <= 12; m++) {
+        const opt = document.createElement('option');
+        opt.value = m; opt.textContent = MONTH_NAMES[m];
+        if (m === currentMonth) opt.selected = true;
+        sel.appendChild(opt);
+    }
+    sel.addEventListener('change', function() {
+        currentMonth = parseInt(this.value);
+        renderMap();
+        buildProvinceList();
+        if (selectedStation) showStationDetail(selectedStation.province, selectedStation.index);
+    });
+}
+
+// ===== 数据加载 =====
+async function loadData() {
+    const resp = await fetch('/api/climate');
+    const json = await resp.json();
+    if (json.success) { climateData = json.data; }
+    else { showToast('气候数据加载失败'); }
+}
+
+// ===== 构建左侧省份+站点列表 =====
+function buildProvinceList() {
+    if (!climateData) return;
+    const container = document.getElementById('provinceList');
+    const provinces = climateData.provinces;
+    const mi = currentMonth - 1;
+    let html = '';
+    // 按站点数排序，站点多的在前
+    const sortedProvs = Object.entries(provinces).sort((a, b) => b[1].station_count - a[1].station_count);
+    sortedProvs.forEach(([prov, data]) => {
+        const avgTemp = data.stations.length > 0
+            ? (data.stations.reduce((s, st) => s + (st.monthly_temp ? st.monthly_temp[mi] : 0), 0) / data.stations.length).toFixed(1)
+            : '--';
+        html += `<div class="ls-province ${allExpanded ? 'open' : ''}" data-prov="${prov}">`;
+        html += `<div class="ls-prov-header" onclick="toggleProvince(this)">`;
+        html += `<span>${prov}<span class="ls-prov-info">${data.station_count}站 ${avgTemp}°C</span></span>`;
+        html += `<span class="ls-prov-arrow">▶</span>`;
+        html += `</div>`;
+        html += `<div class="ls-stations">`;
+        data.stations.forEach((s, idx) => {
+            const st = s.monthly_temp ? s.monthly_temp[mi] : 0;
+            const tempClass = st > 25 ? 'hot' : st < 0 ? 'cold' : '';
+            html += `<div class="ls-station" data-prov="${prov}" data-idx="${idx}" onclick="selectStation('${prov}', ${idx})">`;
+            html += `<span>${s.name}</span>`;
+            html += `<span class="ls-station-temp ${tempClass}">${st.toFixed(1)}°C</span>`;
+            html += `</div>`;
+        });
+        html += `</div></div>`;
+    });
+    container.innerHTML = html;
+}
+
+function toggleProvince(headerEl) {
+    const provEl = headerEl.parentElement;
+    provEl.classList.toggle('open');
+    const prov = provEl.dataset.prov;
+    // 点击省份时高亮地图
+    if (provEl.classList.contains('open')) {
+        highlightProvince(prov);
+        selectedProvince = prov;
+        // 标记省份活跃
+        document.querySelectorAll('.ls-province').forEach(el => el.classList.remove('active'));
+        provEl.classList.add('active');
+    }
+}
+
+function toggleAllProvinces() {
+    allExpanded = !allExpanded;
+    document.querySelectorAll('.ls-province').forEach(el => {
+        el.classList.toggle('open', allExpanded);
+    });
+}
+
+// ===== 模式切换 =====
+function switchMode(mode) {
+    currentMode = mode;
+    document.getElementById('btnPrecip').classList.toggle('active', mode === 'precip');
+    document.getElementById('btnTemp').classList.toggle('active', mode === 'temp');
+    document.getElementById('btnTemp').classList.toggle('active-temp', mode === 'temp');
+    updateLegend();
+    renderMap();
+    buildProvinceList();
+    if (selectedStation) showStationDetail(selectedStation.province, selectedStation.index);
+}
+
+function updateLegend() {
+    const bar = document.getElementById('legendBar');
+    const title = document.getElementById('legendTitle');
+    const minEl = document.getElementById('legendMin');
+    const maxEl = document.getElementById('legendMax');
+    if (currentMode === 'precip') {
+        title.textContent = `${MONTH_NAMES[currentMonth]}降水量 (mm)`;
+        bar.style.background = 'linear-gradient(to right, #e3f2fd, #bbdefb, #90caf9, #64b5f6, #42a5f5, #1e88e5, #1565c0, #0d47a1)';
+        minEl.textContent = '0'; maxEl.textContent = '300';
+    } else {
+        title.textContent = `${MONTH_NAMES[currentMonth]}气温 (\u00b0C)`;
+        bar.style.background = 'linear-gradient(to right, #bbdefb, #e3f2fd, #fff9c4, #ffcc80, #ff8a65, #e53935, #b71c1c)';
+        minEl.textContent = '-20'; maxEl.textContent = '35';
+    }
+}
+
+// ===== 颜色计算 =====
+function getPrecipColor(val) {
+    const t = Math.min(1, Math.max(0, val / 300));
+    return `hsl(210, ${30 + t * 60}%, ${92 - t * 57}%)`;
+}
+function getTempColor(val) {
+    const t = Math.min(1, Math.max(0, (val + 20) / 55));
+    if (t < 0.4) return `hsl(210, ${60 - t * 100}%, ${90 - t * 80}%)`;
+    if (t < 0.6) return `hsl(45, ${60 + (t - 0.4) * 150}%, ${85 - (t - 0.4) * 100}%)`;
+    return `hsl(${(t - 0.6) * 10}, ${70 + (t - 0.6) * 50}%, ${65 - (t - 0.6) * 80}%)`;
+}
+function getColor(val) { return currentMode === 'precip' ? getPrecipColor(val) : getTempColor(val); }
+
+// ===== 获取省份数值 =====
+function getProvinceMonthValue(data) {
+    if (!data.stations || data.stations.length === 0) return 0;
+    const mi = currentMonth - 1;
+    if (currentMode === 'precip') {
+        return Math.round(data.stations.reduce((sum, s) => sum + (s.monthly_precip ? s.monthly_precip[mi] : 0), 0) / data.stations.length);
+    } else {
+        return Math.round(data.stations.reduce((sum, s) => sum + (s.monthly_temp ? s.monthly_temp[mi] : 0), 0) / data.stations.length * 10) / 10;
+    }
+}
+
+// ===== 渲染地图 =====
+function renderMap(filterText) {
+    if (!climateData) return;
+    const provinces = climateData.provinces;
+    const mapData = [];
+    for (const [prov, data] of Object.entries(provinces)) {
+        const echartsName = PROV_ALIAS[prov] || prov;
+        const val = getProvinceMonthValue(data);
+        mapData.push({ name: echartsName, value: val, province: prov, raw: data });
+    }
+    const option = {
+        tooltip: {
+            trigger: 'item',
+            formatter: function(params) {
+                const d = params.data;
+                if (!d || !d.raw) return params.name;
+                const r = d.raw, mi = currentMonth - 1;
+                const avgTemp = r.stations.length > 0
+                    ? (r.stations.reduce((s, st) => s + (st.monthly_temp ? st.monthly_temp[mi] : 0), 0) / r.stations.length).toFixed(1) : '--';
+                const avgPrecip = r.stations.length > 0
+                    ? Math.round(r.stations.reduce((s, st) => s + (st.monthly_precip ? st.monthly_precip[mi] : 0), 0) / r.stations.length) : '--';
+                return `<b>${d.province}</b><br/>${MONTH_NAMES[currentMonth]}均温: <b>${avgTemp}\u00b0C</b><br/>${MONTH_NAMES[currentMonth]}降水: <b>${avgPrecip}mm</b><br/>站点数: ${r.station_count}`;
+            }
+        },
+        visualMap: {
+            show: false,
+            min: currentMode === 'precip' ? 0 : -20,
+            max: currentMode === 'precip' ? 300 : 35,
+            inRange: currentMode === 'precip' ? {
+                color: ['#e3f2fd', '#bbdefb', '#90caf9', '#64b5f6', '#42a5f5', '#1e88e5', '#1565c0', '#0d47a1']
+            } : { color: ['#bbdefb', '#e3f2fd', '#fff9c4', '#ffcc80', '#ff8a65', '#e53935', '#b71c1c'] }
+        },
+        geo: {
+            map: 'china', roam: true, zoom: 1.2, center: [104.5, 36],
+            label: { show: true, fontSize: 10, color: '#5a6070' },
+            itemStyle: { areaColor: '#e8eaef', borderColor: '#c4c8d2', borderWidth: 1 },
+            emphasis: {
+                label: { show: true, fontSize: 12, fontWeight: 'bold', color: '#fff' },
+                itemStyle: { areaColor: '#999999', borderColor: '#555', borderWidth: 2 }
+            },
+            select: {
+                label: { show: true, fontSize: 12, fontWeight: 'bold', color: '#fff' },
+                itemStyle: { areaColor: '#ffffff', borderColor: '#333', borderWidth: 2 }
+            }
+        },
+        series: [{ type: 'map', map: 'china', geoIndex: 0, data: mapData, nameProperty: 'name', selectedMode: 'single' }]
+    };
+    mapChart.setOption(option, true);
+
+    if (filterText) {
+        mapChart.dispatchAction({ type: 'downplay', seriesIndex: 0 });
+        mapData.forEach(d => {
+            const match = d.province.includes(filterText) || d.raw.stations.some(s => s.name.includes(filterText));
+            if (match) mapChart.dispatchAction({ type: 'highlight', seriesIndex: 0, name: d.name });
+        });
+    }
+}
+
+// ===== 危险评估 =====
+function assessDanger(monthlyTemp, monthlyPrecip, monthIdx) {
+    const temp = monthlyTemp ? monthlyTemp[monthIdx] : 15;
+    const precip = monthlyPrecip ? monthlyPrecip[monthIdx] : 50;
+    const wetness = Math.min(1, Math.max(0, precip / 200));
+    const snow = temp < 0 ? Math.min(1, Math.abs(temp) / 15) : 0;
+    let icing = 0;
+    if (temp >= -5 && temp <= 2 && precip > 10) { icing = Math.min(1, precip / 100); }
+    else if (temp < -5) { icing = 0.15; }
+    return { wetness, snow, icing };
+}
+
+// ===== 路面建议 =====
+function getRoadAdvice(danger) {
+    const { wetness, snow, icing } = danger;
+    const advice = [];
+    ROAD_TYPES.forEach(road => {
+        let level = 'ok';
+        let reason = '正常通行';
+        if (road.key === 'ice') {
+            if (icing > 0.3 || snow > 0.3) { level = 'warning'; reason = icing > 0.3 ? '极易结冰' : '有积雪覆盖'; }
+        } else if (road.key === 'snow') {
+            if (snow > 0.2) { level = 'warning'; reason = '易出现积雪'; }
+            else if (icing > 0.2) { level = 'caution'; reason = '可能结冰'; }
+        } else if (road.key === 'wet_asphalt' || road.key === 'wet_concrete') {
+            if (wetness > 0.5) { level = 'caution'; reason = '降水量大，路面湿滑'; }
+        } else if (road.key === 'gravel') {
+            if (wetness > 0.3) { level = 'caution'; reason = '潮湿降低砂石路面附着力'; }
+            if (snow > 0.2 || icing > 0.2) { level = 'warning'; reason = '砂石+冰雪，极危险'; }
+        } else if (road.key === 'dry_asphalt' || road.key === 'dry_concrete' || road.key === 'dry_new_tire') {
+            if (icing > 0.2) { level = 'caution'; reason = '实际路面可能潮湿/结冰'; }
+            if (wetness > 0.6) { level = 'caution'; reason = '降水较多，注意路面积水'; }
+        }
+        advice.push({ ...road, level, reason });
+    });
+    // 按危险程度排序：warning > caution > ok
+    advice.sort((a, b) => {
+        const order = { warning: 0, caution: 1, ok: 2 };
+        return (order[a.level] || 2) - (order[b.level] || 2);
+    });
+    return advice;
+}
+
+// ===== 选中站点 =====
+function selectStation(province, idx) {
+    selectedStation = { province, index: idx };
+    selectedProvince = province;
+    // 高亮左侧
+    document.querySelectorAll('.ls-station').forEach(el => el.classList.remove('active'));
+    document.querySelector(`.ls-station[data-prov="${province}"][data-idx="${idx}"]`)?.classList.add('active');
+    // 展开该省份
+    const provEl = document.querySelector(`.ls-province[data-prov="${province}"]`);
+    if (provEl && !provEl.classList.contains('open')) provEl.classList.add('open');
+    // 高亮地图
+    highlightProvince(province);
+    // 显示右侧详情
+    showStationDetail(province, idx);
+    // 显示省份详情按钮
+    updateProvinceButton(province);
+}
+
+function updateProvinceButton(province) {
+    const btnWrap = document.getElementById('rpProvBtn');
+    const btnLink = document.getElementById('btnProvinceDetail');
+    if (province) {
+        btnWrap.classList.add('show');
+        btnLink.href = '/province/' + encodeURIComponent(province);
+    } else {
+        btnWrap.classList.remove('show');
+    }
+}
+
+// ===== 右侧详情面板 =====
+function showStationDetail(province, idx) {
+    const data = climateData.provinces[province];
+    if (!data || !data.stations[idx]) return;
+    const station = data.stations[idx];
+    const panel = document.getElementById('rightPanel');
+    const title = document.getElementById('rpTitle');
+    const content = document.getElementById('rpContent');
+    const mi = currentMonth - 1;
+
+    title.textContent = station.name;
+    const st = station.monthly_temp ? station.monthly_temp[mi] : 0;
+    const sp = station.monthly_precip ? station.monthly_precip[mi] : 0;
+    const tempClass = st > 25 ? 'rp-temp-hot' : st < 0 ? 'rp-temp-cold' : '';
+    const danger = assessDanger(station.monthly_temp, station.monthly_precip, mi);
+
+    let html = '';
+    html += `<div class="rp-section">`;
+    html += `<div class="rp-station-name">${station.name}</div>`;
+    html += `<div class="rp-coords">${station.lat}\u00b0N, ${station.lon}\u00b0E &nbsp; <span class="rp-month-tag">${MONTH_NAMES[currentMonth]}</span></div>`;
+    html += `<div class="rp-data-row">`;
+    html += `<div class="rp-data-item"><span class="rp-data-label">温度</span><span class="rp-data-value ${tempClass}">${st.toFixed(1)}\u00b0C</span></div>`;
+    html += `<div class="rp-data-item"><span class="rp-data-label">降水</span><span class="rp-data-value">${sp.toFixed(0)}mm</span></div>`;
+    html += `<div class="rp-data-item"><span class="rp-data-label">所在省</span><span class="rp-data-value">${province}</span></div>`;
+    html += `</div>`;
+
+    // 危险指标
+    html += `<div class="rp-danger-bars" style="margin-top:8px">`;
+    html += `<div class="rp-danger-item"><span class="rp-danger-label">潮湿度</span>`;
+    html += `<div class="rp-danger-bar" style="background:#e8e8e8"><div class="rp-danger-fill ${danger.wetness > 0.5 ? 'blue' : 'green'}" style="width:${danger.wetness * 100}%"></div></div></div>`;
+    html += `<div class="rp-danger-item"><span class="rp-danger-label">积雪度</span>`;
+    html += `<div class="rp-danger-bar" style="background:#e8e8e8"><div class="rp-danger-fill ${danger.snow > 0.3 ? 'blue' : 'green'}" style="width:${Math.min(100, danger.snow * 100)}%"></div></div></div>`;
+    html += `<div class="rp-danger-item"><span class="rp-danger-label">结冰度</span>`;
+    html += `<div class="rp-danger-bar" style="background:#e8e8e8"><div class="rp-danger-fill ${danger.icing > 0.3 ? 'blue' : 'green'}" style="width:${Math.min(100, danger.icing * 100)}%"></div></div></div>`;
+    html += `</div>`;
+    html += `</div>`;
+
+    // 路面建议
+    const advice = getRoadAdvice(danger);
+    html += `<div class="rp-road-advice">`;
+    html += `<div class="rp-advice-title">路面风险提示（${MONTH_NAMES[currentMonth]}）</div>`;
+    html += `<div class="rp-advice-list">`;
+    advice.forEach(a => {
+        const icon = a.level === 'warning' ? '⚠' : a.level === 'caution' ? '△' : '○';
+        html += `<div class="rp-advice-item ${a.level}">`;
+        html += `<span class="rp-advice-icon">${icon}</span>`;
+        html += `<span class="rp-advice-name">${a.name}</span>`;
+        html += `<span class="rp-advice-reason">${a.reason}</span>`;
+        html += `<span class="rp-advice-adhesion">\u03bc=${a.adhesion}</span>`;
+        html += `</div>`;
+    });
+    html += `</div></div>`;
+
+    content.innerHTML = html;
+    panel.classList.add('show');
+}
+
+function closeRightPanel() {
+    document.getElementById('rightPanel').classList.remove('show');
+    document.getElementById('rpProvBtn').classList.remove('show');
+    selectedStation = null;
+    document.querySelectorAll('.ls-station').forEach(el => el.classList.remove('active'));
+}
+
+// ===== Haversine =====
+function haversine(lat1, lon1, lat2, lon2) {
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function findNearestStation(lat, lon) {
+    let nearest = null, minDist = Infinity;
+    for (const [prov, data] of Object.entries(climateData.provinces)) {
+        data.stations.forEach((s, idx) => {
+            const d = haversine(lat, lon, s.lat, s.lon);
+            if (d < minDist) { minDist = d; nearest = { station: s, province: prov, index: idx, distance: d }; }
+        });
+    }
+    return nearest;
+}
+
+// ===== 搜索 =====
+function doSearch() {
+    const text = document.getElementById('searchInput').value.trim();
+    if (!text || !climateData) { renderMap(); closeRightPanel(); document.getElementById('searchHint').classList.remove('show'); return; }
+    const expanded = SEARCH_ALIAS[text] || text;
+    const provinces = climateData.provinces;
+    const hint = document.getElementById('searchHint');
+
+    // 1. 精确匹配省份
+    for (const [prov, data] of Object.entries(provinces)) {
+        if (prov === expanded) { selectStationFromSearch(prov, 0); hint.classList.remove('show'); return; }
+    }
+    // 2. 精确匹配站点
+    for (const [prov, data] of Object.entries(provinces)) {
+        const idx = data.stations.findIndex(s => s.name === expanded);
+        if (idx >= 0) { selectStationFromSearch(prov, idx); hint.classList.remove('show'); return; }
+    }
+    // 3. 模糊匹配省份
+    for (const [prov, data] of Object.entries(provinces)) {
+        if (prov.includes(expanded)) { selectStationFromSearch(prov, 0); hint.classList.remove('show'); return; }
+    }
+    // 4. 模糊匹配站点
+    for (const [prov, data] of Object.entries(provinces)) {
+        const idx = data.stations.findIndex(s => s.name.includes(expanded));
+        if (idx >= 0) { selectStationFromSearch(prov, idx); hint.classList.remove('show'); return; }
+    }
+    // 5. 城市坐标最近站点
+    if (CITY_COORDS[expanded]) {
+        const [lat, lon] = CITY_COORDS[expanded];
+        const nearest = findNearestStation(lat, lon);
+        if (nearest) {
+            selectStationFromSearch(nearest.province, nearest.index);
+            hint.textContent = `未找到"${expanded}"的精确匹配，显示最近站点: ${nearest.station.name}（${nearest.province}，距约${Math.round(nearest.distance)}km）`;
+            hint.classList.add('show');
+            return;
+        }
+    }
+    showToast('未找到匹配的地点');
+}
+
+function selectStationFromSearch(province, idx) {
+    // 展开省份
+    const provEl = document.querySelector(`.ls-province[data-prov="${province}"]`);
+    if (provEl && !provEl.classList.contains('open')) provEl.classList.add('open');
+    highlightProvince(province);
+    selectStation(province, idx);
+    // 滚动到对应站点
+    const stationEl = document.querySelector(`.ls-station[data-prov="${province}"][data-idx="${idx}"]`);
+    if (stationEl) stationEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function highlightProvince(province) {
+    const echartsName = PROV_ALIAS[province] || province;
+    mapChart.dispatchAction({ type: 'downplay', seriesIndex: 0 });
+    mapChart.dispatchAction({ type: 'select', seriesIndex: 0, name: echartsName });
+}
+
+function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+// ===== 初始化 =====
+async function init() {
+    initMonthSelect();
+    await loadData();
+    buildProvinceList();
+    mapChart = echarts.init(document.getElementById('mapChart'));
+    updateLegend();
+    renderMap();
+
+    mapChart.on('click', function(params) {
+        if (params.data && params.data.raw) {
+            const prov = params.data.province;
+            selectedProvince = prov;
+            // 展开左侧省份
+            const provEl = document.querySelector(`.ls-province[data-prov="${prov}"]`);
+            if (provEl) {
+                if (!provEl.classList.contains('open')) provEl.classList.add('open');
+                document.querySelectorAll('.ls-province').forEach(el => el.classList.remove('active'));
+                provEl.classList.add('active');
+                provEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+            // 显示第一个站点
+            selectStation(prov, 0);
+        }
+    });
+
+    document.getElementById('searchInput').addEventListener('keydown', function(e) { if (e.key === 'Enter') doSearch(); });
+    window.addEventListener('resize', () => mapChart.resize());
+}
+
+init();
+</script>
+</body>
+</html>

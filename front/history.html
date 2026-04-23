@@ -1,0 +1,318 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Cache-Control" content="no-cache">
+    <title>模拟记录 — 护栏安全设计系统 v4.1</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;600;700;900&display=swap');
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --red: #BE1E2D; --yellow: #F5C518; --blue: #1B3B6F;
+            --black: #1A1A1A; --white: #FAFAFA; --gray: #E8E4DE;
+            --gray-dark: #8C8780; --gray-light: #F2F0EC; --border: #D5D0C8;
+        }
+        body {
+            font-family: "Noto Sans SC", "Helvetica Neue", Helvetica, Arial, sans-serif;
+            background: var(--white); color: var(--black); min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+        .header {
+            height: 56px; padding: 0 32px; display: flex; align-items: center; justify-content: space-between;
+            background: var(--white); border-bottom: 3px solid var(--black);
+        }
+        .header-left { display: flex; align-items: center; gap: 12px; }
+        .nav-logo { width: 28px; height: 28px; background: var(--red); border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+        .nav-logo-inner { width: 14px; height: 14px; background: var(--yellow); border-radius: 50%; }
+        .header h1 { font-size: 15px; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; }
+        .header .version { font-size: 11px; font-weight: 700; color: var(--gray-dark); background: var(--gray-light); padding: 3px 8px; letter-spacing: 1px; }
+        .nav-links { display: flex; gap: 2px; margin-left: 12px; }
+        .nav-link {
+            padding: 7px 16px; font-size: 12px; font-weight: 700; text-decoration: none;
+            color: var(--black); letter-spacing: 1px; text-transform: uppercase;
+            border: 2px solid transparent; transition: all 0.15s; cursor: pointer;
+        }
+        .nav-link:hover { background: var(--gray-light); }
+        .nav-link.active { background: var(--black); color: var(--white); }
+
+        .container { max-width: 1000px; margin: 0 auto; padding: 24px; }
+
+        .empty-state {
+            text-align: center; padding: 80px 20px; color: var(--gray-dark);
+        }
+        .empty-state .icon { font-size: 48px; margin-bottom: 16px; opacity: 0.3; }
+        .empty-state p { font-size: 14px; letter-spacing: 1px; }
+
+        .record-list { display: flex; flex-direction: column; gap: 2px; }
+
+        .record-item {
+            background: var(--white); border: 2px solid var(--black);
+            overflow: hidden; transition: all 0.15s;
+        }
+        .record-header {
+            display: flex; align-items: center; padding: 14px 20px; cursor: pointer;
+            justify-content: space-between;
+        }
+        .record-header:hover { background: var(--gray-light); }
+        .record-header-left { display: flex; align-items: center; gap: 16px; }
+        .record-index {
+            width: 28px; height: 28px; background: var(--black); color: var(--white);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 12px; font-weight: 900;
+        }
+        .record-params { display: flex; gap: 20px; font-size: 13px; }
+        .record-param { display: flex; flex-direction: column; }
+        .record-param .label { font-size: 10px; color: var(--gray-dark); font-weight: 700; letter-spacing: 2px; text-transform: uppercase; }
+        .record-param .value { font-weight: 900; font-size: 14px; }
+        .record-loc { font-size: 11px; font-weight: 700; color: var(--blue); letter-spacing: 1px; }
+        .record-time { font-size: 11px; color: var(--gray-dark); font-weight: 600; }
+        .record-toggle { font-size: 18px; color: var(--gray-dark); transition: transform 0.3s; }
+        .record-toggle.open { transform: rotate(180deg); }
+
+        .record-detail {
+            display: none; padding: 0 20px 20px; border-top: 2px solid var(--border);
+        }
+        .record-detail.show { display: block; }
+
+        .detail-section { margin-top: 16px; }
+        .detail-section-title {
+            font-size: 10px; font-weight: 900; color: var(--gray-dark); letter-spacing: 3px;
+            text-transform: uppercase; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 2px solid var(--black);
+        }
+        .detail-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 2px;
+        }
+        .detail-card {
+            padding: 10px 14px; background: var(--gray-light); border: 2px solid var(--black);
+        }
+        .detail-card .label { font-size: 10px; color: var(--gray-dark); font-weight: 700; letter-spacing: 1px; }
+        .detail-card .value { font-size: 15px; font-weight: 900; margin-top: 2px; }
+
+        .road-results { display: flex; flex-direction: column; gap: 2px; }
+        .road-row {
+            display: flex; align-items: center; gap: 10px; padding: 6px 10px;
+            background: var(--gray-light); font-size: 13px; font-weight: 600;
+            border-left: 4px solid var(--black);
+        }
+        .road-row.safe { border-left-color: var(--yellow); }
+        .road-row.blocked { border-left-color: #FF8C00; }
+        .road-row.failed { border-left-color: var(--red); }
+        .road-row .name { flex: 1; min-width: 120px; color: var(--black); }
+        .road-row .speed { width: 80px; text-align: right; font-weight: 900; }
+        .road-row .status { width: 80px; text-align: center; font-size: 12px; font-weight: 900; }
+        .road-row .status.safe { color: var(--yellow); }
+        .road-row .status.blocked { color: #FF8C00; }
+        .road-row .status.failed { color: var(--red); }
+        .road-row .energy { width: 80px; text-align: right; font-size: 12px; color: var(--gray-dark); }
+
+        .summary-bar {
+            display: flex; gap: 16px; padding: 12px 16px; background: var(--gray-light);
+            border: 2px solid var(--black); margin-top: 12px;
+        }
+        .summary-item { font-size: 13px; font-weight: 600; }
+        .summary-item .num { font-weight: 900; }
+
+        .btn-action {
+            padding: 8px 16px; border: 2px solid var(--black); background: transparent;
+            color: var(--black); font-size: 12px; font-weight: 900; cursor: pointer;
+            font-family: inherit; letter-spacing: 1px; text-transform: uppercase; transition: all 0.15s;
+        }
+        .btn-action:hover { background: var(--black); color: var(--white); }
+        .btn-action.danger { border-color: var(--red); color: var(--red); }
+        .btn-action.danger:hover { background: var(--red); color: var(--white); }
+        .btn-action.primary { background: var(--red); color: var(--white); border-color: var(--red); }
+        .btn-action.primary:hover { background: #A01825; }
+
+        .detail-actions {
+            display: flex; gap: 8px; margin-top: 16px; justify-content: flex-end;
+        }
+
+        .toast {
+            position: fixed; top: 70px; left: 50%; transform: translateX(-50%);
+            padding: 10px 24px; background: var(--black); color: var(--white); font-size: 13px; font-weight: 700;
+            letter-spacing: 1px; z-index: 1000; display: none;
+        }
+        .toast.show { display: block; animation: fadeInOut 2s ease; }
+        @keyframes fadeInOut { 0%{opacity:0}15%{opacity:1}85%{opacity:1}100%{opacity:0} }
+    </style>
+</head>
+<body>
+
+<header class="header">
+    <div class="header-left">
+        <div class="nav-logo"><div class="nav-logo-inner"></div></div>
+        <h1>护栏安全设计系统</h1>
+        <span class="version">v4.1</span>
+        <div class="nav-links">
+            <a class="nav-link" href="/">首页</a>
+            <a class="nav-link" href="/map">气候地图</a>
+            <a class="nav-link" href="/simulator">碰撞模拟</a>
+            <a class="nav-link active" href="/history">模拟记录</a>
+            <a class="nav-link" href="/chat">AI 助手</a>
+        </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:14px;">
+        <button class="btn-action danger" onclick="clearAll()">清空记录</button>
+    </div>
+</header>
+
+<div class="container">
+    <div id="recordList"></div>
+    <div id="emptyState" class="empty-state" style="display:none;">
+        <div class="icon">&#9776;</div>
+        <p>暂无模拟记录</p>
+        <p style="margin-top:8px;font-size:12px;">在模拟器页面点击"保存记录"按钮添加</p>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+async function loadRecords() {
+    const resp = await fetch('/api/history');
+    const json = await resp.json();
+    return json.success ? json.data : [];
+}
+
+async function deleteRecord(id) {
+    await fetch(`/api/history/${id}`, { method: 'DELETE' });
+    renderRecords();
+}
+
+async function clearAll() {
+    if (!confirm('确定要删除所有记录吗？')) return;
+    await fetch('/api/history', { method: 'DELETE' });
+    renderRecords();
+    showToast('已清空所有记录');
+}
+
+function getStatusInfo(status) {
+    if (status === 'safe') return { text: '安全停止', cls: 'safe' };
+    if (status === 'blocked') return { text: '阻拦成功', cls: 'blocked' };
+    if (status === 'failed') return { text: '阻拦失败', cls: 'failed' };
+    return { text: status || '--', cls: '' };
+}
+
+function renderRecordItem(record, index) {
+    const p = record.params;
+    const d = record.results;
+    const summary = d.summary || {};
+    const date = new Date(record.timestamp).toLocaleString('zh-CN');
+    const province = record.province || '';
+    const location = record.location || '';
+
+    let roadHtml = '';
+    if (d.results_by_road) {
+        for (const [key, road] of Object.entries(d.results_by_road)) {
+            const sInfo = getStatusInfo(road.status);
+            const speed = road.hits_barrier ? road.collision_speed_kmh.toFixed(1) : '0.0';
+            const energy = road.hits_barrier ? (road.collision_energy_kj || 0).toFixed(1) + ' kJ' : '--';
+            roadHtml += `<div class="road-row ${sInfo.cls}">
+                <span class="name">${road.road_name || key}</span>
+                <span class="speed">${speed} km/h</span>
+                <span class="status ${sInfo.cls}">${sInfo.text}</span>
+                <span class="energy">${energy}</span>
+            </div>`;
+        }
+    }
+
+    const brakeStatus = p.brake_failure ? '刹车失灵' : '正常';
+    const brakeCls = p.brake_failure ? 'failed' : 'safe';
+
+    let locHtml = '';
+    if (province || location) {
+        locHtml = `<div class="record-loc">${[province, location].filter(Boolean).join(' · ')}</div>`;
+    }
+
+    return `
+    <div class="record-item" id="record-${record.id}">
+        <div class="record-header" onclick="toggleDetail(${record.id})">
+            <div class="record-header-left">
+                <div class="record-index">${index}</div>
+                <div>
+                    <div class="record-params">
+                        <div class="record-param"><span class="label">质量</span><span class="value">${p.vehicle_mass}t</span></div>
+                        <div class="record-param"><span class="label">速度</span><span class="value">${p.initial_speed}km/h</span></div>
+                        <div class="record-param"><span class="label">护栏</span><span class="value">${p.barrier_level}</span></div>
+                    </div>
+                    ${locHtml}
+                </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;">
+                <span class="record-time">${date}</span>
+                <span class="record-toggle" id="toggle-${record.id}">&#9662;</span>
+            </div>
+        </div>
+        <div class="record-detail" id="detail-${record.id}">
+            <div class="detail-section">
+                <div class="detail-section-title">基本参数</div>
+                <div class="detail-grid">
+                    <div class="detail-card"><div class="label">反应时间</div><div class="value">${p.brake_reaction_time}s</div></div>
+                    <div class="detail-card"><div class="label">坡度</div><div class="value">${p.slope_grade}%</div></div>
+                    <div class="detail-card"><div class="label">刹车状态</div><div class="value">${brakeStatus}</div></div>
+                    <div class="detail-card"><div class="label">模拟耗时</div><div class="value">${(d.total_real_time || 0).toFixed(1)}s</div></div>
+                </div>
+            </div>
+            <div class="detail-section">
+                <div class="detail-section-title">各路面结果</div>
+                <div class="road-results">${roadHtml}</div>
+                <div class="summary-bar">
+                    <div class="summary-item">总计: <span class="num">${summary.total_road_types || 8}</span>种路面</div>
+                    <div class="summary-item">安全: <span class="num">${summary.safe_count || 0}</span></div>
+                    <div class="summary-item">阻拦: <span class="num">${summary.blocked_count || 0}</span></div>
+                    <div class="summary-item">失败: <span class="num">${summary.failed_count || 0}</span></div>
+                </div>
+            </div>
+            <div class="detail-actions">
+                <button class="btn-action primary" onclick="event.stopPropagation();analyzeWithAI(${record.id})">AI 分析</button>
+                <button class="btn-action danger" onclick="event.stopPropagation();deleteRecord(${record.id})">删除记录</button>
+            </div>
+        </div>
+    </div>`;
+}
+
+function analyzeWithAI(recordId) {
+    window.location.href = '/chat?record_id=' + recordId;
+}
+
+function toggleDetail(id) {
+    const detail = document.getElementById(`detail-${id}`);
+    const toggle = document.getElementById(`toggle-${id}`);
+    if (detail.classList.contains('show')) {
+        detail.classList.remove('show');
+        toggle.classList.remove('open');
+    } else {
+        detail.classList.add('show');
+        toggle.classList.add('open');
+    }
+}
+
+async function renderRecords() {
+    const records = await loadRecords();
+    const listEl = document.getElementById('recordList');
+    const emptyEl = document.getElementById('emptyState');
+
+    if (records.length === 0) {
+        listEl.innerHTML = '';
+        emptyEl.style.display = 'block';
+        return;
+    }
+
+    emptyEl.style.display = 'none';
+    const sorted = records.sort((a, b) => b.id - a.id);
+    listEl.innerHTML = '<div class="record-list">' +
+        sorted.map((r, i) => renderRecordItem(r, i + 1)).join('') +
+        '</div>';
+}
+
+renderRecords();
+</script>
+</body>
+</html>

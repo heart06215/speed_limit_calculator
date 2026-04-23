@@ -1,0 +1,287 @@
+{
+  "standards": [
+    {
+      "code": "GB 50688-2011",
+      "name": "城市道路交通设施设计规范",
+      "english_name": "Code for design of urban road traffic facility",
+      "version": "2019年版",
+      "issued": "2011-05-12",
+      "effective": "2012-05-01",
+      "revised": "2019-09-01",
+      "issuer": "中华人民共和国住房和城乡建设部",
+      "pages": 127,
+      "description": "规定了城市道路防撞护栏、防撞垫、人行护栏等防护设施的设计要求。适用于城市道路新建、改建和扩建工程的交通设施设计。",
+      "key_sections": {
+        "7.1": "防护设施一般规定",
+        "7.2": "防撞护栏",
+        "7.3": "防撞垫",
+        "7.4": "限界结构防撞设施",
+        "7.5": "人行护栏"
+      }
+    },
+    {
+      "code": "DB11/844-2012",
+      "name": "公路护栏设置规范",
+      "english_name": "Specification for Layout of Highway Barrier",
+      "issued": "2012-06-14",
+      "effective": "2013-01-01",
+      "issuer": "北京市质量技术监督局",
+      "pages": 10,
+      "description": "北京市地方标准，规定了公路路基护栏、桥梁护栏及护栏过渡段的设置要求。适用于新建、改建和扩建公路的护栏设置。",
+      "key_sections": {
+        "4": "一般要求",
+        "5": "路基护栏",
+        "6": "桥梁护栏",
+        "7": "护栏过渡段"
+      }
+    }
+  ],
+  "barrier_collision_specs": {
+    "standard": "GB 50688-2011 表7.2.1",
+    "description": "城市道路防撞护栏碰撞条件（2019年修订版）",
+    "levels": [
+      {
+        "level": "B",
+        "name": "B级 - 最低防护",
+        "design_energy_kj": 70,
+        "mandatory_levels": ["Bm"],
+        "collision_conditions": [
+          {"vehicle_type": "小客车", "mass_t": 1.5, "speed_kmh": 60, "angle_deg": 20},
+          {"vehicle_type": "大客车", "mass_t": 10.0, "speed_kmh": 40, "angle_deg": 20}
+        ],
+        "application": "路侧最低防护等级，适用于设计速度较低的次干路、支路"
+      },
+      {
+        "level": "A",
+        "name": "A级 - 一般防护",
+        "design_energy_kj": 160,
+        "mandatory_levels": ["A", "Am"],
+        "collision_conditions": [
+          {"vehicle_type": "小客车", "mass_t": 1.5, "speed_kmh": 100, "angle_deg": 20},
+          {"vehicle_type": "大客车", "mass_t": 10.0, "speed_kmh": 60, "angle_deg": 20}
+        ],
+        "application": "一般路段常用等级，适用于城市主干路路基段"
+      },
+      {
+        "level": "SB",
+        "name": "SB级 - 较高防护",
+        "design_energy_kj": 280,
+        "mandatory_levels": ["SB", "SBm"],
+        "collision_conditions": [
+          {"vehicle_type": "小客车", "mass_t": 1.5, "speed_kmh": 100, "angle_deg": 20},
+          {"vehicle_type": "大客车", "mass_t": 10.0, "speed_kmh": 80, "angle_deg": 20}
+        ],
+        "application": "危险路段使用，适用于城市快速路路基段、桥梁高度6-20m"
+      },
+      {
+        "level": "SA",
+        "name": "SA级 - 高防护",
+        "design_energy_kj": 400,
+        "collision_conditions": [
+          {"vehicle_type": "小客车", "mass_t": 1.5, "speed_kmh": 100, "angle_deg": 20},
+          {"vehicle_type": "大客车", "mass_t": 14.0, "speed_kmh": 80, "angle_deg": 20}
+        ],
+        "application": "高危险路段，适用于桥梁高度>20m、跨越高速公路的桥梁"
+      },
+      {
+        "level": "SS",
+        "name": "SS级 - 最高公路防护",
+        "design_energy_kj": 520,
+        "collision_conditions": [
+          {"vehicle_type": "小客车", "mass_t": 1.5, "speed_kmh": 100, "angle_deg": 20},
+          {"vehicle_type": "大客车", "mass_t": 18.0, "speed_kmh": 80, "angle_deg": 20}
+        ],
+        "application": "极高危险路段，适用于特大悬索桥、斜拉桥等缆索承重桥梁"
+      },
+      {
+        "level": "HB",
+        "name": "HB级 - 超高防护(城市道路)",
+        "design_energy_kj": 640,
+        "collision_conditions": [
+          {"vehicle_type": "小客车", "mass_t": 1.5, "speed_kmh": 100, "angle_deg": 20},
+          {"vehicle_type": "大客车", "mass_t": 25.0, "speed_kmh": 80, "angle_deg": 20}
+        ],
+        "application": "特殊超高防护，2019年新增等级。适用于大型饮用水水源一级保护区桥梁，大型公交车(>18t)比例高的道路"
+      }
+    ]
+  },
+  "highway_barrier_specs": {
+    "standard": "DB11/844-2012",
+    "description": "公路护栏碰撞条件",
+    "levels": [
+      {
+        "level": "B",
+        "collision_conditions": [
+          {"vehicle_type": "小客车", "mass_t": 1.5, "speed_kmh": 100, "angle_deg": 20},
+          {"vehicle_type": "大客车", "mass_t": 10.0, "speed_kmh": 40, "angle_deg": 20}
+        ],
+        "energy_kj": 70
+      },
+      {
+        "level": "A/Am",
+        "collision_conditions": [
+          {"vehicle_type": "小客车", "mass_t": 1.5, "speed_kmh": 100, "angle_deg": 20},
+          {"vehicle_type": "大客车", "mass_t": 10.0, "speed_kmh": 60, "angle_deg": 20}
+        ],
+        "energy_kj": 160
+      },
+      {
+        "level": "SB/SBm",
+        "collision_conditions": [
+          {"vehicle_type": "小客车", "mass_t": 1.5, "speed_kmh": 100, "angle_deg": 20},
+          {"vehicle_type": "大客车", "mass_t": 10.0, "speed_kmh": 80, "angle_deg": 20}
+        ],
+        "energy_kj": 280
+      },
+      {
+        "level": "SA/SAm",
+        "collision_conditions": [
+          {"vehicle_type": "小客车", "mass_t": 1.5, "speed_kmh": 100, "angle_deg": 20},
+          {"vehicle_type": "大客车", "mass_t": 14.0, "speed_kmh": 80, "angle_deg": 20}
+        ],
+        "energy_kj": 400
+      },
+      {
+        "level": "SS",
+        "collision_conditions": [
+          {"vehicle_type": "小客车", "mass_t": 1.5, "speed_kmh": 100, "angle_deg": 20},
+          {"vehicle_type": "大客车", "mass_t": 18.0, "speed_kmh": 80, "angle_deg": 20}
+        ],
+        "energy_kj": 520
+      }
+    ]
+  },
+  "bridge_barrier_applicability": {
+    "standard": "DB11/844-2012 表5",
+    "description": "桥梁护栏防撞等级适用条件",
+    "conditions": [
+      {
+        "condition": "桥梁高度小于6m，且桥下水深小于2m或无水",
+        "levels": {
+          "高速公路(120km/h)": "SB",
+          "一级公路(100,80km/h)": "A",
+          "二级公路(60km/h)": "A",
+          "三四级公路(40-80km/h)": "B"
+        }
+      },
+      {
+        "condition": "桥梁高度6-20m，或桥下水深>2m，或跨越一级公路或人流密集区",
+        "levels": {
+          "高速公路(120km/h)": "SA",
+          "一级公路(100,80km/h)": "SB",
+          "二级公路(60km/h)": "SB",
+          "三四级公路(40-80km/h)": "A"
+        }
+      },
+      {
+        "condition": "桥梁高度>20m或跨越高速公路、跨越水库油库电站",
+        "levels": {
+          "高速公路(120km/h)": "SS",
+          "一级公路(100,80km/h)": "SA",
+          "二级公路(60km/h)": "SA",
+          "三四级公路(40-80km/h)": "SB"
+        }
+      }
+    ],
+    "bridge_barrier_types": {
+      "B": ["金属梁柱式护栏", "钢筋混凝土梁柱式护栏"],
+      "A": ["金属梁柱式护栏", "钢筋混凝土梁柱式或墙式护栏", "组合式护栏"],
+      "SB": ["金属梁柱式护栏", "钢筋混凝土墙式护栏", "组合式护栏"],
+      "SA": ["金属梁柱式护栏", "钢筋混凝土墙式护栏", "组合式护栏"],
+      "SS": ["金属梁柱式护栏", "钢筋混凝土墙式护栏", "组合式护栏"]
+    }
+  },
+  "roadside_safety_distances": {
+    "standard": "GB 50688-2011 表2",
+    "description": "各国路侧安全距离标准(m)",
+    "countries": {
+      "丹麦": "3.00-9.00",
+      "葡萄牙": "2.00",
+      "匈牙利": "2.50",
+      "比利时": "3.50",
+      "波兰": "3.50",
+      "英国": "4.50",
+      "捷克": "4.50",
+      "瑞士": "10.00",
+      "荷兰": "10.00",
+      "法国(高速公路)": "10.00"
+    },
+    "note": "当路侧没有足够安全净距时，失控车辆碰撞护栏所造成的损伤程度要小于越出路外的损伤程度，因此必须设置防撞护栏。"
+  },
+  "barrier_setting_principles": {
+    "roadside_barrier": {
+      "description": "路侧护栏设置原则(GB 50688-2011 第7.2.3-7.2.5条)",
+      "principles": [
+        "快速路路侧应设置防撞护栏",
+        "主干路路侧应根据具体条件设置防撞护栏",
+        "次干路、支路可在危险路段设置防撞护栏",
+        "路侧有河流、悬崖等危险地形时必须设置",
+        "连续下坡路段应提高护栏等级",
+        "小半径平曲线路段应设置或提高护栏等级",
+        "车辆越出路外可能产生严重事故的路段必须设置"
+      ]
+    },
+    "median_barrier": {
+      "description": "中央分隔带护栏设置原则",
+      "principles": [
+        "快速路中间带宽度≤12m时必须连续设置防撞护栏",
+        "中央分隔带宽度≤10m时必须连续设置中间分隔带护栏",
+        "活动护栏防撞等级应与中央分隔带护栏相同",
+        "中央分隔带开口处应设置活动护栏"
+      ]
+    },
+    "bridge_barrier": {
+      "description": "桥梁护栏设置原则(GB 50688-2011 第7.2.7条)",
+      "principles": [
+        "快速路桥梁应设置防撞护栏",
+        "其他等级桥梁可设防撞护栏或高路缘石",
+        "桥梁护栏防护等级应高于路基段",
+        "桥梁线形差、大型车辆比例高的路段应提高至少1个防护等级",
+        "快速路小桥、涵洞、通道的护栏应与路基段相同"
+      ]
+    },
+    "transition_section": {
+      "description": "护栏过渡段设置原则",
+      "principles": [
+        "结构刚度或防撞等级不同的两种护栏相衔接时应设置过渡段",
+        "过渡段应设置于刚度较低或等级较低的护栏范围内",
+        "刚度、高度、横断面型式和位置应逐渐过渡",
+        "过渡段长度不宜小于10m",
+        "波形梁护栏和混凝土护栏衔接处宜采用刚度渐变形式"
+      ]
+    }
+  },
+  "barrier_types": {
+    "rigid": {
+      "name": "刚性护栏",
+      "description": "车辆碰撞后基本不变形，主要通过车辆爬高和变形来吸收能量。包括混凝土墙式护栏、钢筋混凝土梁柱式护栏。",
+      "advantages": ["防护能力高", "维护成本低", "使用寿命长"],
+      "disadvantages": ["对乘员冲击较大", "占地空间大"]
+    },
+    "semi_rigid": {
+      "name": "半刚性护栏",
+      "description": "车辆碰撞后有一定变形量。包括波形梁钢护栏。",
+      "advantages": ["对乘员冲击较小", "线形诱导性好", "安装方便"],
+      "disadvantages": ["防护能力有限", "需要较大变形空间"]
+    },
+    "combination": {
+      "name": "组合式护栏",
+      "description": "由两种以上结构形式组合而成，兼具刚性和半刚性特点。",
+      "advantages": ["防护能力较强", "适用范围广"],
+      "disadvantages": ["构造复杂", "成本较高"]
+    }
+  },
+  "road_surface_adhesion": {
+    "standard": "JTG B01-2014 公路工程技术标准",
+    "conditions": [
+      {"name": "干燥沥青路面", "adhesion": 0.7, "description": "干燥天气，普通沥青路面"},
+      {"name": "潮湿沥青路面", "adhesion": 0.4, "description": "雨天或路面潮湿的沥青路面"},
+      {"name": "干燥水泥路面", "adhesion": 0.75, "description": "干燥天气，水泥混凝土路面"},
+      {"name": "潮湿水泥路面", "adhesion": 0.45, "description": "雨天或路面潮湿的水泥混凝土路面"},
+      {"name": "积雪路面", "adhesion": 0.2, "description": "冰雪覆盖路面"},
+      {"name": "结冰路面", "adhesion": 0.1, "description": "路面结冰，极低摩擦"},
+      {"name": "砂石路面", "adhesion": 0.35, "description": "碎石或砂土路面"},
+      {"name": "干燥路面(新轮胎)", "adhesion": 0.85, "description": "干燥路面+新轮胎最佳附着情况"}
+    ]
+  }
+}
